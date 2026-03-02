@@ -1,0 +1,120 @@
+# Security Scan — npm audit + secret detection (+ optional license check)
+# Runs on push/PR to main and on a weekly schedule
+
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # JOB: Dependency Vulnerability Audit
+  # ─────────────────────────────────────────────────────────────────────────
+  npm-audit:
+    name: npm Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'  # Node 20 LTS
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Backend audit (high severity)
+        run: npm audit --audit-level=high
+
+      - name: Frontend audit (high severity)
+        run: npm audit --audit-level=high
+        working-directory: frontend
+
+      - name: Check outdated packages
+        run: |
+          echo "Backend outdated packages:"
+          npm outdated || true
+          echo ""
+          echo "Frontend outdated packages:"
+          cd frontend && npm outdated || true
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # JOB: Secret Detection
+  # ─────────────────────────────────────────────────────────────────────────
+  secrets-detection:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for hardcoded secrets in source
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          PATTERNS=(
+            "sk_live_[a-zA-Z0-9]+"
+            "rk_live_[a-zA-Z0-9]+"
+            "AKIA[0-9A-Z]{16}"
+            "password\s*=\s*['\"][^'\"]{8,}"
+            "secret\s*=\s*['\"][^'\"]{8,}"
+            "eyJhbGciOi"
+          )
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            if grep -rE "$pattern" --include="*.ts" --include="*.js" --include="*.json" \
+               --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=coverage \
+               --exclude="*.test.ts" --exclude="*.spec.ts" .; then
+              echo "ALERT: Potential secret matching '$pattern' found!"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            echo "Secret detection failed — review above matches."
+            exit 1
+          fi
+          echo "No hardcoded secrets detected."
+
+      - name: Check .env files not committed
+        run: |
+          if git ls-files | grep -E "^\.env$|^\.env\.local$|^\.env\.production$"; then
+            echo "ALERT: .env file is tracked by git!"
+            exit 1
+          fi
+          echo ".env files are correctly gitignored."
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # JOB: License Compliance
+  # ─────────────────────────────────────────────────────────────────────────
+  license-check:
+    name: License Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'  # Node 20 LTS
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check licenses
+        run: |
+          npx license-checker --onlyAllow \
+            'MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;CC0-1.0;0BSD;Python-2.0;Unlicense' \
+            --excludePrivatePackages || true
