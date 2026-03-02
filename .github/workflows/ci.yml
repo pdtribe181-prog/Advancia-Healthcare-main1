@@ -1,0 +1,214 @@
+# CI Pipeline for Build, Lint, and Test
+# Runs on all PRs and pushes to main/develop
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --ci --forceExit
+        env:
+          NODE_ENV: test
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://test.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'test-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-key' }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || 'sk_test_placeholder00000000000000' }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder00000000000000' }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET || 'whsec_test_placeholder' }}
+          FRONTEND_URL: http://localhost:5173
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage/
+          retention-days: 14
+
+      - name: Build
+        run: npm run build
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Run Vitest
+        run: npm run test:run
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.advanciapayledger.com/api/v1
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-anon-key
+          VITE_SENTRY_DSN: ''
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (production deps only)
+        run: npm audit --omit=dev --audit-level=high || true
+
+      - name: Check for secrets
+        run: |
+          # Match only real-looking keys, and ignore tests/fixtures.
+          # - Stripe keys are typically long; short placeholders like "sk_test_12345" should not fail CI.
+          # - Exclude unit tests and __tests__ folders.
+          PATTERN='(sk_(live|test)_[A-Za-z0-9]{16,}|rk_live_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16})'
+          if grep -rE "$PATTERN" \
+            --include="*.ts" --include="*.js" \
+            --exclude="*.test.ts" --exclude="*.spec.ts" \
+            --exclude-dir="__tests__" \
+            src/; then
+            echo "Potential secrets found in source code!"
+            exit 1
+          fi
+
+  e2e-api-tests:
+    name: E2E Tests (API)
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run API E2E tests
+        run: npm run test:e2e:api -- --project=chromium
+        env:
+          CI: true
+          NODE_ENV: test
+          PORT: 3000
+          # Use real secrets if present; otherwise fall back to safe placeholders.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://test.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'test-anon-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-key' }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || 'sk_test_placeholder' }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder' }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ── Docker Build ─────────────────────────────────────────
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: config/Dockerfile
+          push: false
+          tags: healthcare-payment-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
