@@ -1,0 +1,63 @@
+📋 QUICK COPY-PASTE GUIDE
+
+⚙️ FILES TO EXECUTE (in this exact order):
+
+--- BATCH 1: Core setup (if not already applied) ---
+1️⃣  migrations/012_seed_data.sql
+2️⃣  migrations/013_fix_function_search_path.sql
+3️⃣  migrations/014_storage_and_missing_features.sql
+4️⃣  migrations/015_stripe_integration.sql
+5️⃣  migrations/016_security_fixes.sql
+6️⃣  migrations/017_fix_permissive_rls.sql
+7️⃣  migrations/018_fix_all_rls_policies.sql
+8️⃣  migrations/019_crypto_payments.sql  ← OPTIONAL (Coinbase removed, creates unused tables — safe to skip)
+9️⃣  migrations/019_fix_security_definer_views.sql
+🔟  migrations/020_fix_security_linter_issues.sql
+1️⃣1️⃣  migrations/021_wallet_integration.sql
+1️⃣2️⃣  migrations/022_vault_encryption.sql
+1️⃣3️⃣  migrations/023_cron_jobs.sql
+1️⃣4️⃣  migrations/024b_additional_tables_clean.sql
+1️⃣5️⃣  migrations/024_additional_tables.sql
+1️⃣6️⃣  migrations/025_security_preferences.sql
+1️⃣7️⃣  migrations/026_schema_fixes.sql
+1️⃣8️⃣  migrations/027_email_templates_seed.sql
+1️⃣9️⃣  migrations/028_medbed_features.sql
+2️⃣0️⃣  migrations/029_user_status_approval.sql
+2️⃣1️⃣  migrations/030_performance_indexes.sql
+
+--- BATCH 2: RLS fixes + missing tables (REQUIRED) ---
+2️⃣2️⃣  migrations/031_fix_rls_recursion.sql
+2️⃣3️⃣  migrations/032_create_missing_tables.sql
+2️⃣4️⃣  migrations/033_rls_policy_select_wrappers.sql
+2️⃣5️⃣  migrations/034_fix_rls_warnings.sql
+2️⃣6️⃣  migrations/035_fix_missing_rls_policies.sql
+2️⃣7️⃣  migrations/036_fix_storage_policies.sql
+2️⃣8️⃣  migrations/037_enable_realtime.sql
+2️⃣9️⃣  migrations/038_fix_recurring_billing_rls.sql
+3️⃣0️⃣  migrations/039_fix_rls_perf_warnings.sql
+3️⃣1️⃣  migrations/040_fix_remaining_rls_perf_warnings.sql
+3️⃣2️⃣  migrations/041_consolidate_permissive_policies.sql
+3️⃣3️⃣  migrations/042_consolidate_more_permissive_policies.sql
+3️⃣4️⃣  migrations/043_update_email_templates.sql
+3️⃣5️⃣  migrations/044_fix_rls_performance.sql
+3️⃣6️⃣  migrations/045_fix_hipaa_audit_log_rls.sql
+3️⃣7️⃣  migrations/046_check_policies.sql
+3️⃣8️⃣  migrations/047_fix_storage_rls_performance.sql
+3️⃣9️⃣  migrations/048_port_missing_features.sql
+4️⃣0️⃣  migrations/049_system_config.sql
+4️⃣1️⃣  migrations/050_fix_rls_perf_and_permissive.sql
+4️⃣2️⃣  migrations/051_fix_bookings_rls_perf.sql
+4️⃣3️⃣  migrations/052_fix_overlapping_policies.sql
+
+🔗 SUPABASE SQL EDITOR:
+https://supabase.com/dashboard/project/pikguczsvikzragmrojz/sql/new
+
+✅ WORKFLOW FOR EACH:
+1. Open: c:\Users\mucha.DESKTOP-H7T9NPM\modullar-advancia\[file above]
+2. Select All (Ctrl+A) → Copy (Ctrl+C)
+3. Paste into SQL Editor (Ctrl+V)
+4. Click "Run"
+5. ✓ Verify green checkmark in Results
+6. Next file
+
+⏱️  ETA: 45-60 minutes for all 43 migrations (Batch 2 alone ~20 min)

@@ -1,0 +1,1706 @@
+openapi: 3.0.3
+info:
+  title: Advancia PayLedger API
+  description: Healthcare payment and compliance management platform
+  version: 1.0.0
+  contact:
+    name: API Support
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [patient, provider, admin, staff]
+        phone:
+          type: string
+        is_active:
+          type: boolean
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        specialty:
+          type: string
+        license_number:
+          type: string
+        consultation_fee:
+          type: number
+        rating:
+          type: number
+        bio:
+          type: string
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date_of_birth:
+          type: string
+          format: date
+        gender:
+          type: string
+        insurance_provider:
+          type: string
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        provider_id:
+          type: string
+          format: uuid
+        appointment_date:
+          type: string
+          format: date
+        appointment_time:
+          type: string
+          format: time
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled, no_show, rescheduled]
+        reason_for_visit:
+          type: string
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        currency:
+          type: string
+        payment_status:
+          type: string
+          enum: [pending, completed, failed, refunded, cancelled]
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoice_number:
+          type: string
+        total_amount:
+          type: number
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled, refunded]
+    SecurityPreferences:
+      type: object
+      properties:
+        emailNotifications:
+          type: boolean
+          description: Enable email security notifications
+        smsNotifications:
+          type: boolean
+          description: Enable SMS security notifications
+        notifyOnLogin:
+          type: boolean
+          description: Notify on new login
+        notifyOnPasswordChange:
+          type: boolean
+          description: Notify when password is changed
+        notifyOnEmailChange:
+          type: boolean
+          description: Notify when email is changed
+        notifyOnNewDevice:
+          type: boolean
+          description: Notify when logging in from new device
+    SecurityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum: [login, logout, password_changed, email_changed, phone_changed, mfa_enabled, mfa_disabled, mfa_challenged, recovery_initiated, recovery_completed, identity_linked, identity_unlinked, failed_login, suspicious_activity]
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        location:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /auth/signup:
+    post:
+      summary: Register new user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, fullName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                fullName:
+                  type: string
+                role:
+                  type: string
+                  enum: [patient, provider]
+                  default: patient
+      responses:
+        '200':
+          description: User registered
+        '400':
+          description: Invalid input
+
+  /auth/signin:
+    post:
+      summary: Sign in user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Sign in successful
+        '401':
+          description: Invalid credentials
+
+  /auth/signout:
+    post:
+      summary: Sign out user
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Signed out
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset email
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid email or rate limit exceeded
+
+  /profile:
+    get:
+      summary: Get current user profile
+      tags: [Profile]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    patch:
+      summary: Update current user profile
+      tags: [Profile]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                phone:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+
+  /provider:
+    get:
+      summary: List providers
+      description: |
+        Returns a paginated list of providers. Admins see all providers;
+        patients see only active providers. Supports search and specialty filter.
+      tags: [Providers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: specialty
+          in: query
+          schema:
+            type: string
+          description: Filter by specialty (case-insensitive partial match)
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by business name or specialty
+      responses:
+        '200':
+          description: Paginated provider list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      providers:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Provider'
+                      pagination:
+                        type: object
+                        properties:
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          total:
+                            type: integer
+                          totalPages:
+                            type: integer
+
+  /providers:
+    get:
+      summary: List all providers
+      tags: [Providers]
+      responses:
+        '200':
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+
+  /providers/{id}:
+    get:
+      summary: Get provider by ID
+      tags: [Providers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Provider details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '404':
+          description: Provider not found
+
+  /providers/specialty/{specialty}:
+    get:
+      summary: Find providers by specialty
+      tags: [Providers]
+      parameters:
+        - name: specialty
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+
+  /patients:
+    get:
+      summary: List all patients
+      tags: [Patients]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Patient'
+
+  /appointments:
+    post:
+      summary: Create appointment
+      tags: [Appointments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, provider_id, appointment_date, appointment_time]
+              properties:
+                patient_id:
+                  type: string
+                  format: uuid
+                provider_id:
+                  type: string
+                  format: uuid
+                appointment_date:
+                  type: string
+                  format: date
+                appointment_time:
+                  type: string
+                  format: time
+                reason_for_visit:
+                  type: string
+      responses:
+        '201':
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+
+  /appointments/patient/{patientId}:
+    get:
+      summary: Get patient appointments
+      tags: [Appointments]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+
+  /appointments/provider/{providerId}:
+    get:
+      summary: Get provider appointments
+      tags: [Appointments]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of appointments
+
+  /transactions/patient/{patientId}:
+    get:
+      summary: Get patient transactions
+      tags: [Transactions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+  /invoices/patient/{patientId}:
+    get:
+      summary: Get patient invoices
+      tags: [Invoices]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+
+  /disputes:
+    get:
+      summary: List all disputes
+      tags: [Disputes]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of disputes
+    post:
+      summary: Create dispute
+      tags: [Disputes]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dispute_number, dispute_reason, amount]
+              properties:
+                dispute_number:
+                  type: string
+                transaction_id:
+                  type: string
+                  format: uuid
+                dispute_reason:
+                  type: string
+                  enum: [fraud, duplicate, product_not_received, service_not_provided, other]
+                amount:
+                  type: number
+                customer_description:
+                  type: string
+      responses:
+        '201':
+          description: Dispute created
+
+  /webhooks:
+    get:
+      summary: List user webhooks
+      tags: [Webhooks]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of webhooks
+    post:
+      summary: Create webhook
+      tags: [Webhooks]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url, secret_key]
+              properties:
+                name:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+                secret_key:
+                  type: string
+                subscribed_events:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Webhook created
+
+  /api-keys:
+    get:
+      summary: List user API keys
+      tags: [API Keys]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of API keys
+    post:
+      summary: Create API key
+      tags: [API Keys]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, key_hash, key_prefix]
+              properties:
+                name:
+                  type: string
+                key_hash:
+                  type: string
+                key_prefix:
+                  type: string
+                environment:
+                  type: string
+                  enum: [sandbox, production]
+      responses:
+        '201':
+          description: API key created
+
+  # MFA Routes
+  /auth/mfa/enroll:
+    post:
+      summary: Enroll in MFA (TOTP)
+      tags: [MFA]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: MFA enrollment started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  factorId:
+                    type: string
+                  totp:
+                    type: object
+                    properties:
+                      qr_code:
+                        type: string
+                      secret:
+                        type: string
+                      uri:
+                        type: string
+
+  /auth/mfa/verify:
+    post:
+      summary: Verify MFA code
+      tags: [MFA]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [factorId, code]
+              properties:
+                factorId:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: MFA verified
+
+  /auth/mfa/challenge:
+    post:
+      summary: Create MFA challenge
+      tags: [MFA]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [factorId]
+              properties:
+                factorId:
+                  type: string
+      responses:
+        '200':
+          description: Challenge created
+
+  # Identity Linking Routes
+  /auth/identities:
+    get:
+      summary: Get linked identities
+      description: List all identity providers linked to user's account
+      tags: [Identity Management]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of linked identities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      identities:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            provider:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+                            lastSignInAt:
+                              type: string
+                              format: date-time
+                            identity_data:
+                              type: object
+                              properties:
+                                email:
+                                  type: string
+                                name:
+                                  type: string
+                                avatar:
+                                  type: string
+
+  /auth/identities/link:
+    post:
+      summary: Link OAuth provider
+      description: Initiate linking of OAuth provider to account. Returns URL for OAuth flow.
+      tags: [Identity Management]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties:
+                provider:
+                  type: string
+                  enum: [google, github, facebook, apple]
+      responses:
+        '200':
+          description: OAuth redirect URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                      provider:
+                        type: string
+
+  /auth/identities/{identityId}:
+    delete:
+      summary: Unlink identity
+      description: Remove linked OAuth provider from account
+      tags: [Identity Management]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: identityId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Identity unlinked
+        '400':
+          description: Cannot unlink last authentication method
+
+  # Account Recovery Routes
+  /auth/recovery/phone:
+    post:
+      summary: Set recovery phone
+      description: Add phone number for account recovery
+      tags: [Account Recovery]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  minLength: 10
+                  maxLength: 15
+      responses:
+        '200':
+          description: Recovery phone set, OTP sent for verification
+
+  /auth/recovery/phone/verify:
+    post:
+      summary: Verify recovery phone
+      tags: [Account Recovery]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, token]
+              properties:
+                phone:
+                  type: string
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Recovery phone verified
+
+  /auth/recovery/initiate:
+    post:
+      summary: Initiate account recovery
+      description: Start recovery via phone for users who lost email access
+      tags: [Account Recovery]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+      responses:
+        '200':
+          description: Recovery OTP sent if phone is registered
+
+  /auth/recovery/complete:
+    post:
+      summary: Complete account recovery
+      tags: [Account Recovery]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, token]
+              properties:
+                phone:
+                  type: string
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Account recovered, session created
+
+  # Security Preferences Routes
+  /auth/security/preferences:
+    get:
+      summary: Get security preferences
+      description: Get user's security notification preferences
+      tags: [Security Settings]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Security preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      preferences:
+                        $ref: '#/components/schemas/SecurityPreferences'
+    put:
+      summary: Update security preferences
+      tags: [Security Settings]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+
+  # Stripe Payment Routes
+  /stripe/customers:
+    post:
+      summary: Create Stripe customer
+      tags: [Stripe Payments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Customer created
+
+  /stripe/payment-intents:
+    post:
+      summary: Create payment intent
+      tags: [Stripe Payments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: number
+                  minimum: 50
+                currency:
+                  type: string
+                  default: usd
+                customerId:
+                  type: string
+                description:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Payment intent created
+
+  /stripe/payment-intents/{id}:
+    get:
+      summary: Get payment intent
+      tags: [Stripe Payments]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment intent details
+
+  /stripe/checkout/sessions:
+    post:
+      summary: Create checkout session
+      tags: [Stripe Payments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lineItems]
+              properties:
+                lineItems:
+                  type: array
+                  items:
+                    type: object
+                customerId:
+                  type: string
+                successUrl:
+                  type: string
+                cancelUrl:
+                  type: string
+      responses:
+        '200':
+          description: Checkout session created
+
+  /stripe/refunds:
+    post:
+      summary: Create refund
+      tags: [Stripe Payments]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentIntentId]
+              properties:
+                paymentIntentId:
+                  type: string
+                amount:
+                  type: number
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Refund created
+
+  # Stripe Connect Routes
+  /connect/account:
+    post:
+      summary: Create Stripe Connect account for provider
+      description: Creates a new Stripe Express account or returns existing account info
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: New Connect account created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      accountId:
+                        type: string
+                      detailsSubmitted:
+                        type: boolean
+                      chargesEnabled:
+                        type: boolean
+                      payoutsEnabled:
+                        type: boolean
+                      alreadyExists:
+                        type: boolean
+        '200':
+          description: Existing Connect account returned
+        '404':
+          description: Provider profile not found
+
+  /connect/account-link:
+    post:
+      summary: Generate Stripe onboarding link
+      description: Creates a Stripe account link for provider onboarding flow
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Onboarding link generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      accountId:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      expiresAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: No Stripe account found
+
+  /connect/onboard:
+    post:
+      summary: Start provider onboarding
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Onboarding URL returned
+
+  /connect/status:
+    get:
+      summary: Get onboarding status
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Provider onboarding status
+
+  /connect/dashboard:
+    get:
+      summary: Get Stripe dashboard link
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard link returned
+
+  /connect/balance:
+    get:
+      summary: Get provider balance
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Provider balance
+
+  /connect/payouts:
+    get:
+      summary: Get payout history
+      tags: [Stripe Connect]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Payout history
+
+  # Wallet Routes
+  /wallet/link:
+    post:
+      summary: Link Web3 wallet
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [walletAddress, chain]
+              properties:
+                walletAddress:
+                  type: string
+                chain:
+                  type: string
+                  enum: [ethereum, polygon, base, arbitrum, solana]
+      responses:
+        '200':
+          description: Challenge created for wallet verification
+
+  /wallet/verify:
+    post:
+      summary: Verify wallet signature
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [walletAddress, signature, challengeId]
+              properties:
+                walletAddress:
+                  type: string
+                signature:
+                  type: string
+                challengeId:
+                  type: string
+      responses:
+        '200':
+          description: Wallet verified and linked
+
+  /wallet/wallets:
+    get:
+      summary: Get linked wallets
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of linked wallets
+
+  # Admin Routes
+  /admin/dashboard:
+    get:
+      summary: Get admin dashboard stats
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard statistics
+
+  /admin/transactions:
+    get:
+      summary: List all transactions
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transaction list
+
+  /admin/disputes:
+    get:
+      summary: List all disputes (admin)
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dispute list
+
+  /admin/disputes/{id}:
+    patch:
+      summary: Resolve dispute
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution]
+              properties:
+                resolution:
+                  type: string
+                  enum: [won, lost, accepted]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Dispute resolved
+
+  /admin/providers:
+    get:
+      summary: List all providers (admin)
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Provider list
+
+  /admin/audit-log:
+    get:
+      summary: Get audit log
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Audit log entries
+
+  /admin/analytics/revenue:
+    get:
+      summary: Get revenue analytics
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, year]
+      responses:
+        '200':
+          description: Revenue analytics
+
+  /admin/system/health:
+    get:
+      summary: System health check (admin)
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System health status
+
+  # ── GDPR Endpoints ────────────────────────────────────────
+  /gdpr/export:
+    get:
+      summary: Export user data (GDPR)
+      description: Generates a JSON package with all personal data from 50+ tables
+      tags: [GDPR]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: GDPR data export package
+        '401':
+          description: Unauthorized
+
+  /gdpr/erasure:
+    post:
+      summary: Erase user data (GDPR right to be forgotten)
+      description: Hard-deletes ephemeral data, anonymises financial/audit records, removes storage files and auth account
+      tags: [GDPR]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+              required: [userId]
+      responses:
+        '200':
+          description: Erasure completed
+        '401':
+          description: Unauthorized
+
+  /gdpr/consents:
+    get:
+      summary: Get user consent preferences
+      tags: [GDPR]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Consent records
+    put:
+      summary: Update consent preferences
+      tags: [GDPR]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Consents updated
+
+  # ── Data Retention Endpoints ──────────────────────────────
+  /retention/policies:
+    get:
+      summary: List data retention policies
+      tags: [Data Retention]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of all retention policies with schedules
+
+  /retention/enforce:
+    post:
+      summary: Manually enforce retention policies (admin only)
+      tags: [Data Retention]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Enforcement results
+        '403':
+          description: Forbidden — admin only
+
+  /retention/history:
+    get:
+      summary: Get retention enforcement history
+      tags: [Data Retention]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Past enforcement runs from compliance_logs
+
+  # ── File Upload Endpoints ─────────────────────────────────
+  /upload/avatar:
+    post:
+      summary: Upload profile avatar
+      tags: [File Upload]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful with public URL
+
+  /upload/medical-document:
+    post:
+      summary: Upload medical document
+      tags: [File Upload]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful
+
+  /upload/insurance:
+    post:
+      summary: Upload insurance document
+      tags: [File Upload]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful
+
+  /upload/invoice-attachment:
+    post:
+      summary: Upload invoice attachment
+      tags: [File Upload]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful
+
+  /upload/dispute-evidence:
+    post:
+      summary: Upload dispute evidence
+      tags: [File Upload]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful
+
+  /upload/kyc:
+    post:
+      summary: Upload KYC verification document
+      tags: [File Upload]
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful
+
+  # ── Metrics Endpoints (outside /api/v1) ───────────────────
+  /metrics:
+    get:
+      summary: Prometheus-compatible metrics
+      description: Text/plain Prometheus gauge output for scrapers (no auth required — use IP allowlist)
+      tags: [Metrics]
+      responses:
+        '200':
+          description: Prometheus-format metrics text
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /metrics/json:
+    get:
+      summary: JSON metrics snapshot (admin only)
+      tags: [Metrics]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Full metrics snapshot with endpoints, latency histograms, transaction stats, active users
+
+  /metrics/persist:
+    post:
+      summary: Persist metrics snapshot to database (admin only)
+      tags: [Metrics]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Snapshot persisted
+
+tags:
+  - name: System
+    description: System health and status
+  - name: Authentication
+    description: User authentication
+  - name: MFA
+    description: Multi-factor authentication
+  - name: Profile
+    description: User profile management
+  - name: Providers
+    description: Healthcare provider operations
+  - name: Patients
+    description: Patient management
+  - name: Appointments
+    description: Appointment scheduling
+  - name: Stripe Payments
+    description: Stripe payment operations
+  - name: Stripe Connect
+    description: Provider onboarding and payouts
+  - name: Wallet
+    description: Web3 wallet integration
+  - name: Transactions
+    description: Payment transactions
+  - name: Invoices
+    description: Invoice management
+  - name: Disputes
+    description: Payment disputes
+  - name: Admin
+    description: Admin dashboard endpoints
+  - name: Webhooks
+    description: Webhook configuration
+  - name: API Keys
+    description: API key management
+  - name: Identity Management
+    description: Identity provider linking
+  - name: Account Recovery
+    description: Account recovery options
+  - name: Security Settings
+    description: Security notification settings
+  - name: GDPR
+    description: GDPR compliance endpoints (data export, erasure, consent management)
+  - name: Data Retention
+    description: HIPAA/PCI-DSS/GDPR data retention policy management
+  - name: File Upload
+    description: Secure file upload to Supabase Storage (avatars, medical docs, insurance, invoices, disputes, KYC)
+  - name: Metrics
+    description: Application metrics and observability (Prometheus + JSON)
