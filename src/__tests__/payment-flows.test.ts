@@ -243,6 +243,15 @@ describe('Payment Flows', () => {
       expect(res.body.data.id).toBe('sub_123');
     });
 
+    it('GET /stripe/subscriptions/:id returns 400 for invalid subscription id', async () => {
+      const res = await request(app)
+        .get('/stripe/subscriptions/not_a_sub')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockSubscriptionGet).not.toHaveBeenCalled();
+    });
+
     it('POST /stripe/subscriptions/:id/cancel cancels subscription', async () => {
       mockSubscriptionCancel.mockResolvedValue({
         id: 'sub_123',
@@ -281,6 +290,15 @@ describe('Payment Flows', () => {
       expect(res.status).toBe(200);
     });
 
+    it('POST /stripe/subscriptions/:id/pause returns 400 for invalid subscription id', async () => {
+      const res = await request(app)
+        .post('/stripe/subscriptions/bad_id/pause')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockSubscriptionPause).not.toHaveBeenCalled();
+    });
+
     it('POST /stripe/subscriptions/:id/resume resumes subscription', async () => {
       mockSubscriptionResume.mockResolvedValue({
         id: 'sub_123',
@@ -292,6 +310,15 @@ describe('Payment Flows', () => {
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
+    });
+
+    it('POST /stripe/subscriptions/:id/resume returns 400 for invalid subscription id', async () => {
+      const res = await request(app)
+        .post('/stripe/subscriptions/bad_id/resume')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockSubscriptionResume).not.toHaveBeenCalled();
     });
   });
 
@@ -643,6 +670,15 @@ describe('Payment Flows', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.reason).toBe('fraudulent');
+    });
+
+    it('GET /stripe/disputes/:id returns 400 for invalid dispute id', async () => {
+      const res = await request(app)
+        .get('/stripe/disputes/not_a_dispute')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockDisputesGet).not.toHaveBeenCalled();
     });
 
     it('POST /stripe/disputes/:id/evidence submits evidence', async () => {

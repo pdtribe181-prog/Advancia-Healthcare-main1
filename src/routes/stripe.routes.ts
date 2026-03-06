@@ -383,6 +383,7 @@ router.post(
 router.get(
   '/subscriptions/:id',
   authenticate,
+  validateParams(subscriptionIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const subscription = await stripeServices.subscriptions.get(String(req.params.id));
     res.json({ success: true, data: subscription });
@@ -407,6 +408,7 @@ router.post(
 router.post(
   '/subscriptions/:id/pause',
   authenticate,
+  validateParams(subscriptionIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const subscription = await stripeServices.subscriptions.pause(String(req.params.id));
     res.json({ success: true, data: subscription });
@@ -416,6 +418,7 @@ router.post(
 router.post(
   '/subscriptions/:id/resume',
   authenticate,
+  validateParams(subscriptionIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const subscription = await stripeServices.subscriptions.resume(String(req.params.id));
     res.json({ success: true, data: subscription });
@@ -642,6 +645,7 @@ router.get(
 router.get(
   '/disputes/:id',
   authenticate,
+  validateParams(disputeIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const dispute = await stripeServices.disputes.get(String(req.params.id));
     res.json({ success: true, data: dispute });
