@@ -258,6 +258,7 @@ router.post(
 router.get(
   '/connect/accounts/:accountId',
   authenticate,
+  validateParams(accountIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const account = await stripeServices.connect.getAccount(String(req.params.accountId));
     res.json({ success: true, data: account });
@@ -268,6 +269,8 @@ router.post(
   '/connect/accounts/:accountId/onboarding-link',
   authenticate,
   sensitiveLimiter,
+  validateParams(accountIdParamsSchema),
+  validateBody(createOnboardingLinkSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { returnUrl, refreshUrl } = req.body;
     const env = getEnv();
@@ -298,6 +301,7 @@ router.post(
 router.get(
   '/connect/accounts/:accountId/balance',
   authenticate,
+  validateParams(accountIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const balance = await stripeServices.connect.getBalance(String(req.params.accountId));
     res.json({ success: true, data: balance });
@@ -616,6 +620,8 @@ router.get(
 router.post(
   '/disputes/:id/evidence',
   authenticate,
+  validateParams(disputeIdParamsSchema),
+  validateBody(disputeEvidenceSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const dispute = await stripeServices.disputes.submitEvidence(String(req.params.id), req.body);
     res.json({ success: true, data: dispute });

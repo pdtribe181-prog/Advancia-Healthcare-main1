@@ -337,6 +337,16 @@ describe('Payment Flows', () => {
       expect(res.body.data.url).toContain('stripe.com');
     });
 
+    it('POST .../onboarding-link returns 400 for invalid account id', async () => {
+      const res = await request(app)
+        .post('/stripe/connect/accounts/not_an_account/onboarding-link')
+        .set('Authorization', 'Bearer token')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(mockConnectCreateAccountLink).not.toHaveBeenCalled();
+    });
+
     it('POST .../dashboard-link generates login link', async () => {
       mockConnectCreateLoginLink.mockResolvedValue({
         url: 'https://connect.stripe.com/express/...',
@@ -362,6 +372,15 @@ describe('Payment Flows', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.available[0].amount).toBe(50000);
+    });
+
+    it('GET .../balance returns 400 for invalid account id', async () => {
+      const res = await request(app)
+        .get('/stripe/connect/accounts/not_an_account/balance')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockConnectGetBalance).not.toHaveBeenCalled();
     });
   });
 
@@ -620,6 +639,26 @@ describe('Payment Flows', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe('under_review');
+    });
+
+    it('POST /stripe/disputes/:id/evidence returns 400 for invalid dispute id', async () => {
+      const res = await request(app)
+        .post('/stripe/disputes/not_a_dispute/evidence')
+        .set('Authorization', 'Bearer token')
+        .send({ uncategorized_text: 'Patient confirmed service received' });
+
+      expect(res.status).toBe(400);
+      expect(mockDisputesSubmitEvidence).not.toHaveBeenCalled();
+    });
+
+    it('POST /stripe/disputes/:id/evidence returns 400 for empty payload', async () => {
+      const res = await request(app)
+        .post('/stripe/disputes/dp_1/evidence')
+        .set('Authorization', 'Bearer token')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(mockDisputesSubmitEvidence).not.toHaveBeenCalled();
     });
 
     it('POST /stripe/disputes/:id/close closes dispute', async () => {
