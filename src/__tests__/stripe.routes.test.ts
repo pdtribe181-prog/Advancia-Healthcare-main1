@@ -242,6 +242,15 @@ describe('stripe.routes', () => {
       expect(res.status).toBe(500);
       expect(res.body.success).toBe(false);
     });
+
+    it('returns 400 for invalid customer id', async () => {
+      const res = await request(app)
+        .get('/stripe/customers/not_a_customer')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockCustomersGet).not.toHaveBeenCalled();
+    });
   });
 
   describe('PUT /stripe/customers/:customerId', () => {
@@ -255,6 +264,16 @@ describe('stripe.routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.name).toBe('Updated');
+    });
+
+    it('returns 400 for invalid customer id on update', async () => {
+      const res = await request(app)
+        .put('/stripe/customers/bad_id')
+        .set('Authorization', 'Bearer token')
+        .send({ name: 'Updated' });
+
+      expect(res.status).toBe(400);
+      expect(mockCustomersUpdate).not.toHaveBeenCalled();
     });
   });
 
@@ -322,6 +341,15 @@ describe('stripe.routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.id).toBe('pi_123');
     });
+
+    it('returns 400 for invalid payment intent id on get', async () => {
+      const res = await request(app)
+        .get('/stripe/payment-intents/not_a_pi')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockPaymentIntentsGet).not.toHaveBeenCalled();
+    });
   });
 
   describe('POST /stripe/payment-intents/:id/confirm', () => {
@@ -336,6 +364,16 @@ describe('stripe.routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe('succeeded');
     });
+
+    it('returns 400 for invalid payment intent id on confirm', async () => {
+      const res = await request(app)
+        .post('/stripe/payment-intents/bad_id/confirm')
+        .set('Authorization', 'Bearer token')
+        .send({ paymentMethodId: 'pm_test' });
+
+      expect(res.status).toBe(400);
+      expect(mockPaymentIntentsConfirm).not.toHaveBeenCalled();
+    });
   });
 
   describe('POST /stripe/payment-intents/:id/cancel', () => {
@@ -348,6 +386,15 @@ describe('stripe.routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe('canceled');
+    });
+
+    it('returns 400 for invalid payment intent id on cancel', async () => {
+      const res = await request(app)
+        .post('/stripe/payment-intents/bad_id/cancel')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockPaymentIntentsCancel).not.toHaveBeenCalled();
     });
   });
 
@@ -410,6 +457,15 @@ describe('stripe.routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.id).toBe('re_123');
+    });
+
+    it('returns 400 for invalid refund id', async () => {
+      const res = await request(app)
+        .get('/stripe/refunds/not_a_refund')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockRefundsGet).not.toHaveBeenCalled();
     });
   });
 

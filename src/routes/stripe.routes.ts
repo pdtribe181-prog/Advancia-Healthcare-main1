@@ -63,6 +63,22 @@ const subscriptionCancelSchema = z.object({
   cancelAtPeriodEnd: z.boolean().optional(),
 });
 
+const customerIdParamsSchema = z.object({
+  customerId: z.string().startsWith('cus_'),
+});
+
+const paymentIntentIdParamsSchema = z.object({
+  id: z.string().startsWith('pi_'),
+});
+
+const refundIdParamsSchema = z.object({
+  id: z.string().startsWith('re_'),
+});
+
+const paymentMethodIdParamsSchema = z.object({
+  id: z.string().startsWith('pm_'),
+});
+
 const disputeEvidenceSchema = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
   .refine((value) => Object.keys(value).length > 0, {
@@ -127,6 +143,7 @@ router.post(
 router.get(
   '/customers/:customerId',
   authenticate,
+  validateParams(customerIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const customer = await stripeServices.customers.get(String(req.params.customerId));
     res.json({ success: true, data: customer });
@@ -136,6 +153,7 @@ router.get(
 router.put(
   '/customers/:customerId',
   authenticate,
+  validateParams(customerIdParamsSchema),
   validateBody(updateCustomerSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const customer = await stripeServices.customers.update(String(req.params.customerId), req.body);
@@ -190,6 +208,7 @@ router.post(
 router.get(
   '/payment-intents/:id',
   authenticate,
+  validateParams(paymentIntentIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const paymentIntent = await stripeServices.paymentIntents.get(String(req.params.id));
     res.json({ success: true, data: paymentIntent });
@@ -200,6 +219,7 @@ router.post(
   '/payment-intents/:id/confirm',
   paymentLimiter,
   authenticate,
+  validateParams(paymentIntentIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { paymentMethodId } = req.body;
     const paymentIntent = await stripeServices.paymentIntents.confirm(
@@ -213,6 +233,7 @@ router.post(
 router.post(
   '/payment-intents/:id/cancel',
   authenticate,
+  validateParams(paymentIntentIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const paymentIntent = await stripeServices.paymentIntents.cancel(String(req.params.id));
     res.json({ success: true, data: paymentIntent });
@@ -249,6 +270,7 @@ router.post(
 router.get(
   '/refunds/:id',
   authenticate,
+  validateParams(refundIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const refund = await stripeServices.refunds.get(String(req.params.id));
     res.json({ success: true, data: refund });
@@ -493,6 +515,7 @@ router.post(
 router.get(
   '/customers/:customerId/payment-methods',
   authenticate,
+  validateParams(customerIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const paymentMethods = await stripeServices.customers.listPaymentMethods(
       String(req.params.customerId)
@@ -504,6 +527,7 @@ router.get(
 router.post(
   '/payment-methods/:id/attach',
   authenticate,
+  validateParams(paymentMethodIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { customerId } = req.body;
     const paymentMethod = await stripeServices.paymentMethods.attach(
@@ -517,6 +541,7 @@ router.post(
 router.post(
   '/payment-methods/:id/detach',
   authenticate,
+  validateParams(paymentMethodIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const paymentMethod = await stripeServices.paymentMethods.detach(String(req.params.id));
     res.json({ success: true, data: paymentMethod });
