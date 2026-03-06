@@ -16,6 +16,7 @@ import {
 } from '../middleware/rateLimit.middleware.js';
 import {
   validateBody,
+  validateParams,
   createPaymentIntentSchema,
   refundSchema,
   uuidSchema,
@@ -40,6 +41,25 @@ const updateCustomerSchema = z.object({
   name: z.string().max(200).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
 });
+
+const createOnboardingLinkSchema = z.object({
+  returnUrl: z.string().url().optional(),
+  refreshUrl: z.string().url().optional(),
+});
+
+const accountIdParamsSchema = z.object({
+  accountId: z.string().startsWith('acct_'),
+});
+
+const disputeIdParamsSchema = z.object({
+  id: z.string().startsWith('dp_'),
+});
+
+const disputeEvidenceSchema = z
+  .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one evidence field is required',
+  });
 
 // Debug middleware for stripe routes
 router.use((req, res, next) => {
