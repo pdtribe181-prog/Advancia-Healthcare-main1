@@ -6,6 +6,8 @@ Single app: one landing, wallet connect, booking & sessions, features, FAQ, poli
 
 **Quick start:** `npm install` â†’ `cd frontend && npm install` â†’ copy `.env.example` to `.env` (set Supabase + Stripe) â†’ `npm run dev` (backend) â†’ `cd frontend && npm run dev` (frontend). App: http://127.0.0.1:5174
 
+**Everything needed (env, Supabase, migrations, Auth URLs, production):** [SETUP_ALL_NEEDED.md](SETUP_ALL_NEEDED.md)
+
 ## Full stack: frontend to backend
 
 - **Frontend** (React + Vite) calls the API via VITE_API_URL or, when unset, relative /api/v1 (dev proxy).

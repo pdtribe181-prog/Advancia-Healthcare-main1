@@ -571,13 +571,28 @@ const server = app.listen(PORT, async () => {
     docsUrl: `http://localhost:${PORT}/docs`,
   });
 
-  // Initialize in-memory service catalog
-  try {
-    await initializeServiceCatalog();
-    logger.info('✨ Service catalog loaded into memory - zero external lookups during requests');
-  } catch (error) {
-    logger.error('Failed to initialize service catalog', error as Error);
-    // Continue running - services routes will fail but other endpoints work
+  // Initialize in-memory service catalog (retry automatically so DB can be ready after migrations)
+  const maxRetries = 5;
+  const retryDelayMs = 3000;
+  let catalogReady = false;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await initializeServiceCatalog();
+      logger.info('✨ Service catalog loaded into memory - zero external lookups during requests');
+      catalogReady = true;
+      break;
+    } catch (error) {
+      logger.warn(`Service catalog init attempt ${attempt}/${maxRetries} failed`, error as Error);
+      if (attempt < maxRetries) {
+        logger.info(`Retrying in ${retryDelayMs / 1000}s... (run "npm run setup:db" if migrations not applied)`);
+        await new Promise((r) => setTimeout(r, retryDelayMs));
+      } else {
+        logger.error('Failed to initialize service catalog after retries - services routes may fail', error as Error);
+      }
+    }
+  }
+  if (!catalogReady) {
+    logger.info('Server running; apply migrations with "npm run setup:db" then restart to load service catalog');
   }
 });
 

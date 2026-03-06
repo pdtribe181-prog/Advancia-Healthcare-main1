@@ -9,6 +9,7 @@
     "postbuild": "node -e \"require('fs').copyFileSync('openapi.yaml', 'dist/openapi.yaml')\" && echo Build completed successfully",
     "start": "node dist/server.js",
     "dev": "tsx --watch src/server.ts",
+    "setup:db": "tsx scripts/run-all-migrations-pg.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:e2e": "npx playwright test",
