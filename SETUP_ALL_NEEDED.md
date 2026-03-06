@@ -109,9 +109,11 @@ git push -u origin main
 
 ## 7. Production (when you go live)
 
+**Frontend on Vercel (recommended):** [docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md) — Root Directory `frontend`, env vars, custom domain.
+
 | # | What | Where |
 |---|------|--------|
-| 1 | Custom domain | Cloudflare Pages / Vercel → add **advancia-healthcare.com** (and www) |
+| 1 | Custom domain | Vercel (or Cloudflare Pages) → add **advancia-healthcare.com** (and www) |
 | 2 | Supabase URLs | [Auth URL config](https://supabase.com/dashboard/project/luxvhnshmmowjpiazrnk/auth/url-configuration) → add https://advancia-healthcare.com, https://www.advancia-healthcare.com |
 | 3 | Google OAuth | Google Cloud Console → OAuth client → add those domains to origins and redirect URIs |
 | 4 | support@ | Configure support@advancia-healthcare.com (e.g. Cloudflare Email Routing) |
