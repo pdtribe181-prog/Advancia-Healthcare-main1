@@ -258,6 +258,16 @@ describe('Payment Flows', () => {
       expect(res.body.data.status).toBe('canceled');
     });
 
+    it('POST /stripe/subscriptions/:id/cancel returns 400 for invalid payload', async () => {
+      const res = await request(app)
+        .post('/stripe/subscriptions/sub_123/cancel')
+        .set('Authorization', 'Bearer token')
+        .send({ cancelAtPeriodEnd: 'yes' });
+
+      expect(res.status).toBe(400);
+      expect(mockSubscriptionCancel).not.toHaveBeenCalled();
+    });
+
     it('POST /stripe/subscriptions/:id/pause pauses subscription', async () => {
       mockSubscriptionPause.mockResolvedValue({
         id: 'sub_123',
@@ -358,6 +368,15 @@ describe('Payment Flows', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.url).toContain('stripe.com');
+    });
+
+    it('POST .../dashboard-link returns 400 for invalid account id', async () => {
+      const res = await request(app)
+        .post('/stripe/connect/accounts/not_an_account/dashboard-link')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockConnectCreateLoginLink).not.toHaveBeenCalled();
     });
 
     it('GET .../balance retrieves connected account balance', async () => {
@@ -672,6 +691,15 @@ describe('Payment Flows', () => {
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
+    });
+
+    it('POST /stripe/disputes/:id/close returns 400 for invalid dispute id', async () => {
+      const res = await request(app)
+        .post('/stripe/disputes/invalid_dispute/close')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockDisputesClose).not.toHaveBeenCalled();
     });
   });
 

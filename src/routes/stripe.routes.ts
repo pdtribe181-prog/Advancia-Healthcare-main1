@@ -55,6 +55,14 @@ const disputeIdParamsSchema = z.object({
   id: z.string().startsWith('dp_'),
 });
 
+const subscriptionIdParamsSchema = z.object({
+  id: z.string().startsWith('sub_'),
+});
+
+const subscriptionCancelSchema = z.object({
+  cancelAtPeriodEnd: z.boolean().optional(),
+});
+
 const disputeEvidenceSchema = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
   .refine((value) => Object.keys(value).length > 0, {
@@ -312,6 +320,7 @@ router.post(
 router.post(
   '/connect/accounts/:accountId/dashboard-link',
   authenticate,
+  validateParams(accountIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const loginLink = await stripeServices.connect.createLoginLink(String(req.params.accountId));
     res.json({ success: true, data: { url: loginLink.url } });
@@ -383,6 +392,8 @@ router.get(
 router.post(
   '/subscriptions/:id/cancel',
   authenticate,
+  validateParams(subscriptionIdParamsSchema),
+  validateBody(subscriptionCancelSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { cancelAtPeriodEnd } = req.body;
     const subscription = await stripeServices.subscriptions.cancel(
@@ -651,6 +662,7 @@ router.post(
 router.post(
   '/disputes/:id/close',
   authenticate,
+  validateParams(disputeIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const dispute = await stripeServices.disputes.close(String(req.params.id));
     res.json({ success: true, data: dispute });
