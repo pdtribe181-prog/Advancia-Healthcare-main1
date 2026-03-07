@@ -270,19 +270,19 @@ export function MedBed() {
           <div style={{ background: '#0f1729', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '32px', maxWidth: '500px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ color: 'var(--text-primary)', fontWeight: '700', fontSize: '18px', margin: 0 }}>Book: {selectedBed.name}</h2>
-              <button onClick={() => setSelectedBed(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '20px', padding: '4px' }}>✕</button>
+              <button onClick={() => setSelectedBed(null)} aria-label="Close booking form" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '20px', padding: '4px' }}>✕</button>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
               {selectedBed.facility_name} · ${selectedBed.daily_rate}/day
             </p>
             <form onSubmit={handleBook} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Check-in Date</label>
-                <input type="date" required min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '11px 14px', background: '#162040', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+                <label htmlFor="checkin-date" style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Check-in Date</label>
+                <input id="checkin-date" type="date" required min={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '11px 14px', background: '#162040', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} value={checkIn} onChange={e => setCheckIn(e.target.value)} />
               </div>
               <div>
-                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Check-out Date</label>
-                <input type="date" required min={checkIn || new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '11px 14px', background: '#162040', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} value={checkOut} onChange={e => setCheckOut(e.target.value)} />
+                <label htmlFor="checkout-date" style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Check-out Date</label>
+                <input id="checkout-date" type="date" required min={checkIn || new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '11px 14px', background: '#162040', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} value={checkOut} onChange={e => setCheckOut(e.target.value)} />
               </div>
               {checkIn && checkOut && nights(checkIn, checkOut) > 0 && (
                 <div style={{ padding: '12px 14px', background: '#162040', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -295,8 +295,8 @@ export function MedBed() {
                 </div>
               )}
               <div>
-                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Special Requests (optional)</label>
-                <textarea rows={3} placeholder="Any specific needs or medical requirements…" style={{ width: '100%', padding: '11px 14px', background: '#162040', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} value={notes} onChange={e => setNotes(e.target.value)} />
+                <label htmlFor="special-requests" style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Special Requests (optional)</label>
+                <textarea id="special-requests" rows={3} placeholder="Any specific needs or medical requirements…" style={{ width: '100%', padding: '11px 14px', background: '#162040', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} value={notes} onChange={e => setNotes(e.target.value)} />
               </div>
               {bookingError && (
                 <div style={{ padding: '10px 14px', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '8px', color: '#f87171', fontSize: '13px' }}>{bookingError}</div>

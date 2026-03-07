@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { MedBedController } from '../controllers/medbed.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validation.middleware.js';
+import { asyncHandler } from '../utils/errors.js';
 
 const router = Router();
 const controller = new MedBedController();
@@ -13,12 +14,6 @@ const createBookingSchema = z.object({
   endTime: z.string().min(1),
   paymentIntentId: z.string().startsWith('pi_').optional(),
 });
-
-// Create wrapper for async handlers
-const asyncHandler =
-  (fn: (req: Request, res: Response, next: any) => Promise<any>) =>
-  (req: Request, res: Response, next: any) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
 
 // Public routes
 router.get(

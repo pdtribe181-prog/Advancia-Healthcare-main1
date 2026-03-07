@@ -31,6 +31,8 @@ jest.unstable_mockModule('../services/medbed.service.js', () => ({
 }));
 
 jest.unstable_mockModule('../utils/errors.js', () => ({
+  asyncHandler: (fn: any) => (req: any, res: any, next: any) =>
+    Promise.resolve(fn(req, res, next)).catch(next),
   sendErrorResponse: jest.fn<any>((res: any, error: any) => {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });

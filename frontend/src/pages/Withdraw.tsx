@@ -150,7 +150,7 @@ export function Withdraw() {
           {method === 'crypto' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={label}>Payout Wallet</label>
+                <label style={label} htmlFor="payout-wallet">Payout Wallet</label>
                 {loadingWallets ? (
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '12px', color: 'var(--text-muted)', fontSize: '13px' }}><Spinner size={16} /><span>Loading wallets…</span></div>
                 ) : payoutWallets.length === 0 ? (
@@ -160,6 +160,7 @@ export function Withdraw() {
                   </div>
                 ) : (
                   <select
+                    id="payout-wallet"
                     style={select}
                     value={selectedWallet}
                     onChange={e => setSelectedWallet(e.target.value)}
@@ -184,15 +185,16 @@ export function Withdraw() {
               )}
 
               <div>
-                <label style={label}>Currency</label>
-                <select style={select} value={cryptoCurrency} onChange={e => setCryptoCurrency(e.target.value)}>
+                <label style={label} htmlFor="crypto-currency">Currency</label>
+                <select id="crypto-currency" style={select} value={cryptoCurrency} onChange={e => setCryptoCurrency(e.target.value)}>
                   {['USDC', 'USDT', 'ETH', 'SOL'].map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
 
               <div>
-                <label style={label}>Amount</label>
+                <label style={label} htmlFor="crypto-amount">Amount</label>
                 <input
+                  id="crypto-amount"
                   type="number"
                   min="0.01"
                   step="any"
@@ -207,27 +209,27 @@ export function Withdraw() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={label}>Amount (USD)</label>
-                <input type="number" min="10" step="0.01" placeholder="0.00" style={input} value={bankAmount} onChange={e => setBankAmount(e.target.value)} required />
+                <label style={label} htmlFor="bank-amount">Amount (USD)</label>
+                <input id="bank-amount" type="number" min="10" step="0.01" placeholder="0.00" style={input} value={bankAmount} onChange={e => setBankAmount(e.target.value)} required />
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Minimum withdrawal: $10.00</p>
               </div>
               <div>
-                <label style={label}>Bank Name</label>
-                <input type="text" placeholder="e.g. Chase Bank" style={input} value={bankName} onChange={e => setBankName(e.target.value)} required />
+                <label style={label} htmlFor="bank-name">Bank Name</label>
+                <input id="bank-name" type="text" placeholder="e.g. Chase Bank" style={input} value={bankName} onChange={e => setBankName(e.target.value)} required />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
-                  <label style={label}>Account Number</label>
-                  <input type="text" placeholder="••••••••" style={input} value={accountNumber} onChange={e => setAccountNumber(e.target.value)} required />
+                  <label style={label} htmlFor="account-number">Account Number</label>
+                  <input id="account-number" type="text" placeholder="••••••••" style={input} value={accountNumber} onChange={e => setAccountNumber(e.target.value)} required />
                 </div>
                 <div>
-                  <label style={label}>Routing Number</label>
-                  <input type="text" placeholder="9 digits" style={input} value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} required />
+                  <label style={label} htmlFor="routing-number">Routing Number</label>
+                  <input id="routing-number" type="text" placeholder="9 digits" style={input} value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} required />
                 </div>
               </div>
               <div>
-                <label style={label}>Account Type</label>
-                <select style={select} value={accountType} onChange={e => setAccountType(e.target.value)}>
+                <label style={label} htmlFor="account-type">Account Type</label>
+                <select id="account-type" style={select} value={accountType} onChange={e => setAccountType(e.target.value)}>
                   <option value="checking">Checking</option>
                   <option value="savings">Savings</option>
                 </select>

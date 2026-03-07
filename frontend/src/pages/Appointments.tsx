@@ -270,7 +270,7 @@ export default function Appointments() {
 
       {step === 'book' && selectedProvider && (
         <div style={{ background: '#131625', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', padding: '28px' }}>
-          <button onClick={() => setStep('list')} style={{ color: '#818cf8', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', marginBottom: '20px', padding: 0 }}>&larr; Back to providers</button>
+          <button onClick={() => setStep('list')} aria-label="Back to providers list" style={{ color: '#818cf8', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', marginBottom: '20px', padding: 0 }}>&larr; Back to providers</button>
 
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#e2e8f0', marginBottom: '6px' }}>Book with {selectedProvider.name}</h2>
           <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '4px' }}>{selectedProvider.specialty}</p>
@@ -278,8 +278,8 @@ export default function Appointments() {
 
           {/* Date Selection */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#94a3b8', marginBottom: '8px' }}>Select Date</label>
-            <input type="date" min={today} value={selectedDate} onChange={(e) => handleDateChange(e.target.value)}
+            <label htmlFor="appointment-date" style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#94a3b8', marginBottom: '8px' }}>Select Date</label>
+            <input id="appointment-date" type="date" min={today} value={selectedDate} onChange={(e) => handleDateChange(e.target.value)}
               style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#e2e8f0', fontSize: '14px', width: '100%', boxSizing: 'border-box' }} />
           </div>
 
@@ -307,8 +307,8 @@ export default function Appointments() {
 
           {/* Reason */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#94a3b8', marginBottom: '8px' }}>Reason for Visit (optional)</label>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
+            <label htmlFor="appointment-reason" style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#94a3b8', marginBottom: '8px' }}>Reason for Visit (optional)</label>
+            <textarea id="appointment-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
               placeholder="Describe the reason for your appointment..."
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#e2e8f0', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>

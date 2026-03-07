@@ -387,8 +387,9 @@ export const KYCVerification: React.FC = () => {
 
               <div style={rowStyle}>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>First Name *</label>
+                  <label htmlFor="kyc-first-name" style={labelStyle}>First Name *</label>
                   <input
+                    id="kyc-first-name"
                     type="text"
                     value={personalInfo.firstName}
                     onChange={e => setPersonalInfo({ ...personalInfo, firstName: e.target.value })}
@@ -398,8 +399,9 @@ export const KYCVerification: React.FC = () => {
                   />
                 </div>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Last Name *</label>
+                  <label htmlFor="kyc-last-name" style={labelStyle}>Last Name *</label>
                   <input
+                    id="kyc-last-name"
                     type="text"
                     value={personalInfo.lastName}
                     onChange={e => setPersonalInfo({ ...personalInfo, lastName: e.target.value })}
@@ -412,8 +414,9 @@ export const KYCVerification: React.FC = () => {
 
               <div style={rowStyle}>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Date of Birth *</label>
+                  <label htmlFor="kyc-dob" style={labelStyle}>Date of Birth *</label>
                   <input
+                    id="kyc-dob"
                     type="date"
                     value={personalInfo.dateOfBirth}
                     onChange={e => setPersonalInfo({ ...personalInfo, dateOfBirth: e.target.value })}
@@ -422,8 +425,9 @@ export const KYCVerification: React.FC = () => {
                   />
                 </div>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Nationality *</label>
+                  <label htmlFor="kyc-nationality" style={labelStyle}>Nationality *</label>
                   <select
+                    id="kyc-nationality"
                     value={personalInfo.nationality}
                     onChange={e => setPersonalInfo({ ...personalInfo, nationality: e.target.value })}
                     style={selectStyle}
@@ -442,8 +446,9 @@ export const KYCVerification: React.FC = () => {
               </div>
 
               <div style={fieldStyle}>
-                <label style={labelStyle}>Street Address *</label>
+                <label htmlFor="kyc-address" style={labelStyle}>Street Address *</label>
                 <input
+                  id="kyc-address"
                   type="text"
                   value={personalInfo.address}
                   onChange={e => setPersonalInfo({ ...personalInfo, address: e.target.value })}
@@ -455,8 +460,9 @@ export const KYCVerification: React.FC = () => {
 
               <div style={rowStyle}>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>City *</label>
+                  <label htmlFor="kyc-city" style={labelStyle}>City *</label>
                   <input
+                    id="kyc-city"
                     type="text"
                     value={personalInfo.city}
                     onChange={e => setPersonalInfo({ ...personalInfo, city: e.target.value })}
@@ -466,8 +472,9 @@ export const KYCVerification: React.FC = () => {
                   />
                 </div>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>State/Province *</label>
+                  <label htmlFor="kyc-state" style={labelStyle}>State/Province *</label>
                   <input
+                    id="kyc-state"
                     type="text"
                     value={personalInfo.state}
                     onChange={e => setPersonalInfo({ ...personalInfo, state: e.target.value })}
@@ -480,8 +487,9 @@ export const KYCVerification: React.FC = () => {
 
               <div style={rowStyle}>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Postal Code *</label>
+                  <label htmlFor="kyc-postal-code" style={labelStyle}>Postal Code *</label>
                   <input
+                    id="kyc-postal-code"
                     type="text"
                     value={personalInfo.postalCode}
                     onChange={e => setPersonalInfo({ ...personalInfo, postalCode: e.target.value })}
@@ -491,8 +499,9 @@ export const KYCVerification: React.FC = () => {
                   />
                 </div>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Country *</label>
+                  <label htmlFor="kyc-country" style={labelStyle}>Country *</label>
                   <select
+                    id="kyc-country"
                     value={personalInfo.country}
                     onChange={e => setPersonalInfo({ ...personalInfo, country: e.target.value })}
                     style={selectStyle}
