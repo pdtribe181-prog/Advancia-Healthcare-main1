@@ -13,6 +13,11 @@ const mockCaptureMessage = jest.fn<any>().mockReturnValue('msg-id-123');
 const mockAddBreadcrumb = jest.fn<any>();
 const mockSetUser = jest.fn<any>();
 const mockStartInactiveSpan = jest.fn<any>().mockReturnValue({ end: jest.fn<any>() });
+const mockStartSpan = jest
+  .fn<any>()
+  .mockImplementation((_opts: any, cb: any) =>
+    cb({ setAttribute: jest.fn<any>(), end: jest.fn<any>() })
+  );
 const mockGetClient = jest.fn<any>();
 const mockClose = jest.fn<any>().mockResolvedValue(true);
 
@@ -23,6 +28,7 @@ jest.unstable_mockModule('@sentry/node', () => ({
   addBreadcrumb: mockAddBreadcrumb,
   setUser: mockSetUser,
   startInactiveSpan: mockStartInactiveSpan,
+  startSpan: mockStartSpan,
   getClient: mockGetClient,
   close: mockClose,
 }));
@@ -66,6 +72,8 @@ function mockRes(): any {
   return {
     status: jest.fn<any>().mockReturnThis(),
     json: jest.fn<any>().mockReturnThis(),
+    on: jest.fn<any>(),
+    statusCode: 200,
   };
 }
 
@@ -211,8 +219,13 @@ describe('Monitoring Service', () => {
   });
 
   describe('sentryTracingHandler', () => {
-    it('calls next', () => {
-      sentryTracingHandler(mockReq(), mockRes(), mockNext);
+    it('starts a span and calls next', () => {
+      const req = mockReq({ method: 'GET', url: '/api/test' });
+      sentryTracingHandler(req, mockRes(), mockNext);
+      expect(mockStartSpan).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'GET /api/test', op: 'http.server' }),
+        expect.any(Function)
+      );
       expect(mockNext).toHaveBeenCalled();
     });
   });

@@ -13,6 +13,7 @@ import {
   persistMetrics,
 } from '../services/metrics.service.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { asyncHandler } from '../utils/errors.js';
 
 const router = Router();
 
@@ -54,9 +55,14 @@ router.get('/json', authenticate, requireRole('admin'), (_req, res) => {
 });
 
 // Manual persist — admin only
-router.post('/persist', authenticate, requireRole('admin'), async (_req, res) => {
-  await persistMetrics();
-  res.json({ status: 'persisted' });
-});
+router.post(
+  '/persist',
+  authenticate,
+  requireRole('admin'),
+  asyncHandler(async (_req, res) => {
+    await persistMetrics();
+    res.json({ status: 'persisted' });
+  })
+);
 
 export default router;

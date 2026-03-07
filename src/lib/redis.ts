@@ -10,6 +10,7 @@
  */
 import { Redis as UpstashRedis } from '@upstash/redis';
 import IORedis from 'ioredis';
+import { logger } from '../middleware/logging.middleware.js';
 
 /** ioredis client type (avoids using namespace as type under strict TS) */
 type IORedisClient = InstanceType<typeof IORedis>;
@@ -163,7 +164,7 @@ export function getRedis(): RedisLike {
       _activeKind = 'upstash';
       // Upstash REST client already implements get/set/del/incr/expire/ping
       _unified = client as unknown as RedisLike;
-      console.log('[Redis] Using Upstash REST client');
+      logger.info('[Redis] Using Upstash REST client');
       return _unified;
     } catch {
       // fall through
@@ -185,7 +186,7 @@ export function getRedis(): RedisLike {
         expire: (key, sec) => client.expire(key, sec),
         ping: () => client.ping(),
       };
-      console.log('[Redis] Using ioredis TCP client');
+      logger.info('[Redis] Using ioredis TCP client');
       return _unified;
     } catch {
       // fall through
@@ -196,7 +197,7 @@ export function getRedis(): RedisLike {
   _activeKind = 'memory';
   _unified = new MemoryRedis();
   if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
-    console.log('[Redis] Using in-memory fallback (single-process only)');
+    logger.info('[Redis] Using in-memory fallback (single-process only)');
   }
   return _unified;
 }

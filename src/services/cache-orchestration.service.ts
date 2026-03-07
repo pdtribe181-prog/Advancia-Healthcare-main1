@@ -14,7 +14,7 @@
  */
 
 import { supabase, createServiceClient } from '../lib/supabase.js';
-import { redisHelpers } from '../lib/redis.js';
+import { redisHelpers, getRedis } from '../lib/redis.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { z } from 'zod';
 import { LRUCache as LRU } from 'lru-cache';
@@ -25,7 +25,9 @@ export const CacheRequest = z.object({
   data: z.any().optional(),
   ttl: z.number().positive().optional(),
   tags: z.array(z.string()).optional(),
-  strategy: z.enum(['write_through', 'write_behind', 'write_around', 'cache_aside']).default('cache_aside'),
+  strategy: z
+    .enum(['write_through', 'write_behind', 'write_around', 'cache_aside'])
+    .default('cache_aside'),
   layer: z.enum(['memory', 'redis', 'database', 'auto']).default('auto'),
   priority: z.enum(['low', 'normal', 'high']).default('normal'),
   compress: z.boolean().default(false),
@@ -191,7 +193,6 @@ export class CacheOrchestrationService {
         retrievalTime,
         metadata: { ttl: 0 },
       };
-
     } catch (error) {
       logger.error('Cache get operation failed', undefined, {
         key,
@@ -212,13 +213,17 @@ export class CacheOrchestrationService {
   /**
    * Set value with intelligent caching orchestration
    */
-  async set(key: string, value: any, options: Partial<CacheRequestType> = {}): Promise<CacheResult> {
+  async set(
+    key: string,
+    value: any,
+    options: Partial<CacheRequestType> = {}
+  ): Promise<CacheResult> {
     const startTime = Date.now();
     const request = CacheRequest.parse({ key, data: value, ...options });
 
     try {
       // Calculate adaptive TTL if not provided
-      const ttl = request.ttl || await this.calculateAdaptiveTTL(key, value);
+      const ttl = request.ttl || (await this.calculateAdaptiveTTL(key, value));
 
       // Prepare cache entry
       const entry: CacheEntry = {
@@ -276,7 +281,6 @@ export class CacheOrchestrationService {
           tags: entry.tags,
         },
       };
-
     } catch (error) {
       logger.error('Cache set operation failed', undefined, {
         key,
@@ -308,17 +312,17 @@ export class CacheOrchestrationService {
 
       // Collect keys to invalidate
       if (validatedRequest.keys) {
-        validatedRequest.keys.forEach(key => keysToInvalidate.add(key));
+        validatedRequest.keys.forEach((key) => keysToInvalidate.add(key));
       }
 
       if (validatedRequest.tags) {
         const taggedKeys = await this.getKeysByTags(validatedRequest.tags);
-        taggedKeys.forEach(key => keysToInvalidate.add(key));
+        taggedKeys.forEach((key) => keysToInvalidate.add(key));
       }
 
       if (validatedRequest.pattern) {
         const patternKeys = await this.getKeysByPattern(validatedRequest.pattern);
-        patternKeys.forEach(key => keysToInvalidate.add(key));
+        patternKeys.forEach((key) => keysToInvalidate.add(key));
       }
 
       const invalidatedKeys: string[] = [];
@@ -345,7 +349,6 @@ export class CacheOrchestrationService {
         invalidatedKeys,
         errors: errors.length > 0 ? errors : undefined,
       };
-
     } catch (error) {
       logger.error('Cache invalidation failed', undefined, {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -398,7 +401,6 @@ export class CacheOrchestrationService {
         warmedKeys,
         errors: errors.length > 0 ? errors : undefined,
       };
-
     } catch (error) {
       logger.error('Cache warming failed', undefined, {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -429,7 +431,8 @@ export class CacheOrchestrationService {
         misses: totalMisses,
         hitRate: totalOperations > 0 ? (totalHits / totalOperations) * 100 : 0,
         totalOperations,
-        averageRetrievalTime: this.stats.operations > 0 ? this.stats.totalRetrievalTime / this.stats.operations : 0,
+        averageRetrievalTime:
+          this.stats.operations > 0 ? this.stats.totalRetrievalTime / this.stats.operations : 0,
         memoryUsage: memoryStats.usage,
         layerStats: {
           memory: memoryStats.performance,
@@ -437,7 +440,6 @@ export class CacheOrchestrationService {
           database: { hits: 0, misses: 0, hitRate: 0 }, // Placeholder
         },
       };
-
     } catch (error) {
       logger.error('Failed to get cache stats', undefined, {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -520,7 +522,6 @@ export class CacheOrchestrationService {
         layer: 'redis',
         retrievalTime,
       };
-
     } catch (error) {
       return {
         success: false,
@@ -533,7 +534,11 @@ export class CacheOrchestrationService {
     }
   }
 
-  private async setToMemory(key: string, value: any, options: Partial<CacheRequestType>): Promise<void> {
+  private async setToMemory(
+    key: string,
+    value: any,
+    options: Partial<CacheRequestType>
+  ): Promise<void> {
     const entry: CacheEntry = {
       key,
       value: options.compress ? await this.compressValue(value) : value,
@@ -574,7 +579,7 @@ export class CacheOrchestrationService {
     ]);
 
     // Schedule asynchronous database write
-    this.flushToDatabase(entry).catch(error => {
+    this.flushToDatabase(entry).catch((error) => {
       logger.warn('Write-behind database flush failed', {
         key: entry.key,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -602,13 +607,17 @@ export class CacheOrchestrationService {
   }
 
   private async compressValue(value: any): Promise<any> {
-    // Implement compression logic (e.g., gzip for large objects)
-    return value; // Placeholder
+    const json = JSON.stringify(value);
+    if (json.length < 1024) return value; // Skip small values
+    // Store as a wrapper so decompressValue can detect it
+    return { __compressed: true, data: Buffer.from(json).toString('base64') };
   }
 
   private async decompressValue(value: any): Promise<any> {
-    // Implement decompression logic
-    return value; // Placeholder
+    if (value && typeof value === 'object' && value.__compressed) {
+      return JSON.parse(Buffer.from(value.data, 'base64').toString('utf-8'));
+    }
+    return value;
   }
 
   private async calculateAdaptiveTTL(key: string, value: any): Promise<number> {
@@ -623,35 +632,91 @@ export class CacheOrchestrationService {
   // (Track dependencies, analytics, background warming, etc.)
 
   private async flushToDatabase(entry: CacheEntry): Promise<void> {
-    // Implement database write
+    try {
+      const serviceClient = createServiceClient();
+      await serviceClient.from('cache_entries').upsert(
+        {
+          key: entry.key,
+          value: entry.value,
+          ttl: entry.ttl,
+          tags: entry.tags,
+          created_at: entry.createdAt.toISOString(),
+          last_accessed: entry.lastAccessed.toISOString(),
+          access_count: entry.accessCount,
+        },
+        { onConflict: 'key' }
+      );
+    } catch (error) {
+      logger.debug('Cache DB flush skipped (table may not exist)', { key: entry.key });
+    }
   }
 
   private async recordCacheHit(key: string, layer: string): Promise<void> {
-    // Record hit analytics
+    this.stats.hits++;
+    const statsKey = `${this.statsKeyPrefix}${key}`;
+    try {
+      await getRedis().incr(statsKey);
+    } catch {
+      // Analytics are best-effort
+    }
+    logger.debug('Cache hit', { key, layer });
   }
 
   private async recordCacheMiss(key: string): Promise<void> {
-    // Record miss analytics
+    this.stats.misses++;
+    logger.debug('Cache miss', { key });
   }
 
   private async recordCacheWrite(key: string, entry: CacheEntry): Promise<void> {
-    // Record write analytics
+    logger.debug('Cache write', { key, layer: entry.layer, ttl: entry.ttl, size: entry.size });
   }
 
-  private async considerCacheWarming(key: string, request: CacheRequestType): Promise<void> {
-    // Consider if this miss indicates we should warm related keys
+  private async considerCacheWarming(key: string, _request: CacheRequestType): Promise<void> {
+    // Track miss frequency; if a key is missed repeatedly, queue it for warming
+    const missCountKey = `cache_miss_count:${key}`;
+    try {
+      const count = await getRedis().incr(missCountKey);
+      if (count >= 3) {
+        logger.info('Key eligible for cache warming', { key, missCount: count });
+      }
+    } catch {
+      // Best-effort
+    }
   }
 
   private async updateDependencyTracking(key: string, tags: string[]): Promise<void> {
-    // Update dependency relationships
+    if (!tags.length) return;
+    for (const tag of tags) {
+      const depKey = `${this.dependencyKeyPrefix}${tag}`;
+      try {
+        await redisHelpers.setCache(depKey, key, 3600);
+      } catch {
+        // Best-effort
+      }
+    }
   }
 
   private async getKeysByTags(tags: string[]): Promise<string[]> {
-    return []; // Implement tag-based key lookup
+    const keys: Set<string> = new Set();
+    // Check memory cache for matching tags
+    for (const [key, entry] of this.memoryCache.entries()) {
+      if (entry.tags.some((t) => tags.includes(t))) {
+        keys.add(key);
+      }
+    }
+    return Array.from(keys);
   }
 
   private async getKeysByPattern(pattern: string): Promise<string[]> {
-    return []; // Implement pattern-based key lookup
+    const keys: string[] = [];
+    // Convert glob-style pattern to regex
+    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+    for (const key of this.memoryCache.keys()) {
+      if (regex.test(key)) {
+        keys.push(key);
+      }
+    }
+    return keys;
   }
 
   private async invalidateKey(key: string, strategy: string): Promise<void> {
@@ -660,16 +725,46 @@ export class CacheOrchestrationService {
     await redisHelpers.deleteCache(key);
   }
 
-  private async propagateInvalidation(keys: string[], strategy: string): Promise<void> {
-    // Propagate invalidation to other instances
+  private async propagateInvalidation(keys: string[], _strategy: string): Promise<void> {
+    // Invalidate from all layers for each key
+    for (const key of keys) {
+      this.memoryCache.delete(key);
+      try {
+        await redisHelpers.deleteCache(key);
+      } catch {
+        // Best-effort
+      }
+    }
   }
 
   private async scheduleWarmingJob(request: CacheWarmingRequestType): Promise<void> {
-    // Schedule background warming job
+    // Queue keys for background warming
+    for (const key of request.keys) {
+      try {
+        await redisHelpers.setCache(
+          `${this.warmingQueueKey}:${key}`,
+          JSON.stringify({ key, priority: request.priority, scheduledFor: request.scheduledFor }),
+          3600
+        );
+      } catch {
+        // Best-effort
+      }
+    }
+    logger.debug('Cache warming job scheduled', { keyCount: request.keys.length });
   }
 
-  private async warmCacheKey(key: string, request: CacheWarmingRequestType): Promise<void> {
-    // Warm specific cache key
+  private async warmCacheKey(key: string, _request: CacheWarmingRequestType): Promise<void> {
+    // Try to fetch and pre-populate from Redis to memory
+    try {
+      const value = await redisHelpers.getCache<string>(key);
+      if (value) {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        await this.setToMemory(key, parsed, { ttl: 300 });
+        logger.debug('Cache key warmed', { key });
+      }
+    } catch {
+      // Key not available for warming
+    }
   }
 
   private getMemoryCacheStats(): any {
@@ -683,30 +778,59 @@ export class CacheOrchestrationService {
         percentage: maxSize > 0 ? (size / maxSize) * 100 : 0,
       },
       performance: {
-        hits: 0, // Would track these separately
-        misses: 0,
-        hitRate: 0,
+        hits: this.stats.hits,
+        misses: this.stats.misses,
+        hitRate: this.stats.operations > 0 ? this.stats.hits / this.stats.operations : 0,
       },
     };
   }
 
   private async getRedisCacheStats(): Promise<any> {
-    // Get Redis cache statistics
     return {
       performance: {
-        hits: 0,
-        misses: 0,
-        hitRate: 0,
+        hits: this.stats.hits,
+        misses: this.stats.misses,
+        hitRate: this.stats.operations > 0 ? this.stats.hits / this.stats.operations : 0,
       },
     };
   }
 
   private startCacheWarming(): void {
-    // Start background cache warming process
+    // Periodically check warming queue and warm eligible keys
+    setInterval(async () => {
+      try {
+        const queueKeys = await this.getKeysByPattern('cache_warming_queue:*');
+        for (const key of queueKeys.slice(0, 10)) {
+          const actualKey = key.replace(`${this.warmingQueueKey}:`, '');
+          await this.warmCacheKey(actualKey, {
+            keys: [actualKey],
+            preloadData: false,
+            priority: 'low',
+          });
+        }
+      } catch {
+        // Background process, best-effort
+      }
+    }, 60_000); // Every 60 seconds
   }
 
   private startStatsCollection(): void {
-    // Start background stats collection
+    // Periodically log cache performance stats
+    setInterval(() => {
+      const hitRate =
+        this.stats.operations > 0
+          ? ((this.stats.hits / this.stats.operations) * 100).toFixed(1)
+          : '0.0';
+      if (this.stats.operations > 0) {
+        logger.info('Cache stats', {
+          hitRate: `${hitRate}%`,
+          hits: this.stats.hits,
+          misses: this.stats.misses,
+          operations: this.stats.operations,
+          memorySize: this.memoryCache.size,
+        });
+      }
+    }, 300_000); // Every 5 minutes
   }
 }
 

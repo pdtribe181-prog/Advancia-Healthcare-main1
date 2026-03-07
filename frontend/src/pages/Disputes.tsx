@@ -1,5 +1,6 @@
-import React, { useState, CSSProperties } from 'react';
+import React, { useState, useEffect, useCallback, CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 import '../styles.css';
 
 interface Dispute {
@@ -15,34 +16,6 @@ interface Dispute {
   merchant: string;
   resolution?: string;
 }
-
-const mockDisputes: Dispute[] = [
-  {
-    id: 'dsp_001',
-    transactionId: 'txn_3PK8mN2eZvKYlo2C',
-    amount: 275.00,
-    type: 'refund',
-    status: 'under_review',
-    reason: 'Service not received',
-    description: 'Appointment was cancelled but I was still charged.',
-    createdAt: '2026-02-20T10:30:00Z',
-    updatedAt: '2026-02-21T14:00:00Z',
-    merchant: 'Quantum Health Center',
-  },
-  {
-    id: 'dsp_002',
-    transactionId: 'txn_2AB9nM3fYwLZmp3D',
-    amount: 150.00,
-    type: 'billing_error',
-    status: 'resolved',
-    reason: 'Duplicate charge',
-    description: 'I was charged twice for the same consultation.',
-    createdAt: '2026-02-15T09:00:00Z',
-    updatedAt: '2026-02-18T16:30:00Z',
-    merchant: 'Wellness Medical Group',
-    resolution: 'Refund of $150.00 processed on Feb 18, 2026',
-  },
-];
 
 const pageStyle: CSSProperties = {
   minHeight: '100vh',
@@ -349,7 +322,9 @@ type Tab = 'all' | 'open' | 'resolved';
 
 export const Disputes: React.FC = () => {
   const [tab, setTab] = useState<Tab>('all');
-  const [disputes, setDisputes] = useState<Dispute[]>(mockDisputes);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newDispute, setNewDispute] = useState({
@@ -358,6 +333,34 @@ export const Disputes: React.FC = () => {
     reason: '',
     description: '',
   });
+
+  const fetchDisputes = useCallback(async () => {
+    setFetchLoading(true);
+    setFetchError(null);
+    try {
+      const res = await api.get<{ success: boolean; data: any[] }>('/disputes');
+      const mapped: Dispute[] = (res.data || []).map((d: any) => ({
+        id: d.id,
+        transactionId: d.transaction_id || d.transactionId || '',
+        amount: d.amount || 0,
+        type: d.type || d.dispute_type || 'refund',
+        status: d.status || 'open',
+        reason: d.reason || '',
+        description: d.description || '',
+        createdAt: d.created_at || d.createdAt || new Date().toISOString(),
+        updatedAt: d.updated_at || d.updatedAt || new Date().toISOString(),
+        merchant: d.merchant || d.provider?.business_name || 'Healthcare Provider',
+        resolution: d.resolution_notes || d.resolution,
+      }));
+      setDisputes(mapped);
+    } catch (err: any) {
+      setFetchError(err.message || 'Failed to load disputes');
+    } finally {
+      setFetchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchDisputes(); }, [fetchDisputes]);
 
   const filteredDisputes = disputes.filter(d => {
     if (tab === 'open') return ['open', 'under_review', 'escalated'].includes(d.status);
@@ -387,26 +390,31 @@ export const Disputes: React.FC = () => {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const newD: Dispute = {
-        id: `dsp_${Date.now()}`,
-        transactionId: newDispute.transactionId,
-        amount: Math.random() * 500 + 50, // Mock
-        type: newDispute.type as Dispute['type'],
-        status: 'open',
+      const res = await api.post<{ success: boolean; data: any }>('/disputes', {
+        transaction_id: newDispute.transactionId,
+        type: newDispute.type,
         reason: newDispute.reason,
         description: newDispute.description,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        merchant: 'Healthcare Provider',
+      });
+
+      const created = res.data;
+      const newD: Dispute = {
+        id: created.id || `dsp_${Date.now()}`,
+        transactionId: created.transaction_id || newDispute.transactionId,
+        amount: created.amount || 0,
+        type: (created.type || newDispute.type) as Dispute['type'],
+        status: created.status || 'open',
+        reason: created.reason || newDispute.reason,
+        description: created.description || newDispute.description,
+        createdAt: created.created_at || new Date().toISOString(),
+        updatedAt: created.updated_at || new Date().toISOString(),
+        merchant: created.merchant || 'Healthcare Provider',
       };
 
       setDisputes([newD, ...disputes]);
       setShowModal(false);
       setNewDispute({ transactionId: '', type: 'refund', reason: '', description: '' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit dispute:', error);
     } finally {
       setLoading(false);
@@ -440,7 +448,16 @@ export const Disputes: React.FC = () => {
         </div>
 
         {/* Dispute List */}
-        {filteredDisputes.length === 0 ? (
+        {fetchLoading ? (
+          <div style={emptyStateStyle}>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '15px' }}>Loading disputes…</p>
+          </div>
+        ) : fetchError ? (
+          <div style={emptyStateStyle}>
+            <p style={{ color: '#ef4444', fontSize: '15px', marginBottom: '12px' }}>{fetchError}</p>
+            <button style={actionBtnStyle} onClick={fetchDisputes}>Retry</button>
+          </div>
+        ) : filteredDisputes.length === 0 ? (
           <div style={emptyStateStyle}>
             <div style={emptyIconStyle}>📋</div>
             <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>

@@ -1,4 +1,5 @@
-import React, { useState, CSSProperties } from 'react';
+import React, { useState, useEffect, useCallback, CSSProperties } from 'react';
+import { api } from '../services/api';
 import '../styles.css';
 
 interface AuditLogEntry {
@@ -21,104 +22,14 @@ interface AuditLogEntry {
   status: 'success' | 'failure' | 'warning';
 }
 
-const mockLogs: AuditLogEntry[] = [
-  {
-    id: 'log_001',
-    timestamp: '2024-12-20T14:32:15Z',
-    action: 'user.login',
-    category: 'auth',
-    actor: { id: 'usr_001', email: 'admin@advanciapayledger.com', role: 'admin' },
-    resource: { type: 'session', id: 'sess_abc123' },
-    details: { method: '2fa', duration_ms: 245 },
-    ip_address: '192.168.1.45',
-    user_agent: 'Mozilla/5.0 Chrome/120.0',
-    status: 'success',
-  },
-  {
-    id: 'log_002',
-    timestamp: '2024-12-20T14:28:10Z',
-    action: 'payment.processed',
-    category: 'payment',
-    actor: { id: 'usr_002', email: 'jane@clinic.com', role: 'provider' },
-    resource: { type: 'transaction', id: 'txn_xyz789' },
-    details: { amount: 250.00, currency: 'USD', method: 'card' },
-    ip_address: '10.0.0.15',
-    user_agent: 'AdvanciaApp/2.1.0',
-    status: 'success',
-  },
-  {
-    id: 'log_003',
-    timestamp: '2024-12-20T14:25:03Z',
-    action: 'user.password_change',
-    category: 'security',
-    actor: { id: 'usr_003', email: 'patient@email.com', role: 'patient' },
-    resource: { type: 'user', id: 'usr_003' },
-    details: { initiated_by: 'user', required_reauth: true },
-    ip_address: '203.45.67.89',
-    user_agent: 'Mozilla/5.0 Safari/17.0',
-    status: 'success',
-  },
-  {
-    id: 'log_004',
-    timestamp: '2024-12-20T14:20:45Z',
-    action: 'user.login_failed',
-    category: 'auth',
-    actor: { id: 'unknown', email: 'test@example.com', role: 'unknown' },
-    resource: { type: 'session', id: 'sess_failed_001' },
-    details: { reason: 'invalid_password', attempts: 3 },
-    ip_address: '198.51.100.23',
-    user_agent: 'curl/7.84.0',
-    status: 'failure',
-  },
-  {
-    id: 'log_005',
-    timestamp: '2024-12-20T14:15:22Z',
-    action: 'admin.role_changed',
-    category: 'admin',
-    actor: { id: 'usr_001', email: 'admin@advanciapayledger.com', role: 'admin' },
-    resource: { type: 'user', id: 'usr_004' },
-    details: { old_role: 'patient', new_role: 'provider', approved: true },
-    ip_address: '192.168.1.45',
-    user_agent: 'Mozilla/5.0 Chrome/120.0',
-    status: 'success',
-  },
-  {
-    id: 'log_006',
-    timestamp: '2024-12-20T14:10:18Z',
-    action: 'payment.refund_issued',
-    category: 'payment',
-    actor: { id: 'usr_001', email: 'admin@advanciapayledger.com', role: 'admin' },
-    resource: { type: 'transaction', id: 'txn_ref_001' },
-    details: { amount: 75.00, reason: 'customer_request', original_txn: 'txn_orig_001' },
-    ip_address: '192.168.1.45',
-    user_agent: 'Mozilla/5.0 Chrome/120.0',
-    status: 'success',
-  },
-  {
-    id: 'log_007',
-    timestamp: '2024-12-20T14:05:00Z',
-    action: 'system.rate_limit',
-    category: 'system',
-    actor: { id: 'unknown', email: 'unknown', role: 'unknown' },
-    resource: { type: 'api', id: '/api/v1/transactions' },
-    details: { limit: 100, current: 150, window_seconds: 60 },
-    ip_address: '198.51.100.50',
-    user_agent: 'python-requests/2.28',
-    status: 'warning',
-  },
-  {
-    id: 'log_008',
-    timestamp: '2024-12-20T13:55:30Z',
-    action: 'user.2fa_enabled',
-    category: 'security',
-    actor: { id: 'usr_005', email: 'doctor@clinic.com', role: 'provider' },
-    resource: { type: 'user', id: 'usr_005' },
-    details: { method: 'totp', backup_codes_generated: 8 },
-    ip_address: '172.16.0.55',
-    user_agent: 'Mozilla/5.0 Firefox/120.0',
-    status: 'success',
-  },
-];
+function inferCategory(action: string): AuditLogEntry['category'] {
+  if (action.startsWith('auth') || action.includes('login') || action.includes('signup')) return 'auth';
+  if (action.includes('payment') || action.includes('transaction') || action.includes('refund')) return 'payment';
+  if (action.startsWith('admin') || action.includes('role')) return 'admin';
+  if (action.includes('security') || action.includes('2fa') || action.includes('password')) return 'security';
+  if (action.includes('system') || action.includes('rate_limit')) return 'system';
+  return 'user';
+}
 
 const pageStyle: CSSProperties = {
   minHeight: '100vh',
@@ -387,7 +298,13 @@ const exportBtnStyle: CSSProperties = {
 };
 
 export const AuditLog: React.FC = () => {
-  const [logs] = useState<AuditLogEntry[]>(mockLogs);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 50;
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [filters, setFilters] = useState({
     search: '',
@@ -397,12 +314,52 @@ export const AuditLog: React.FC = () => {
     dateTo: '',
   });
 
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (filters.category) params.set('action', filters.category);
+      const res = await api.get<{ data: any[]; pagination: { total: number; totalPages: number } }>(
+        `/admin/audit-log?${params.toString()}`
+      );
+      // Map backend compliance_logs to AuditLogEntry shape
+      const mapped: AuditLogEntry[] = (res.data || []).map((log: any) => ({
+        id: log.id,
+        timestamp: log.created_at || log.timestamp,
+        action: log.action_type || log.action || 'unknown',
+        category: inferCategory(log.action_type || log.action || ''),
+        actor: {
+          id: log.user_id || log.user?.id || 'unknown',
+          email: log.user?.email || log.user?.full_name || 'unknown',
+          role: log.user?.role || 'unknown',
+        },
+        resource: {
+          type: log.resource_type || 'unknown',
+          id: log.resource_id || 'unknown',
+        },
+        details: log.details || {},
+        ip_address: log.ip_address || '',
+        user_agent: log.user_agent || '',
+        status: log.status || 'success',
+      }));
+      setLogs(mapped);
+      setTotal(res.pagination?.total ?? mapped.length);
+      setTotalPages(res.pagination?.totalPages ?? 1);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load audit logs');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filters.category]);
+
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
   const filteredLogs = logs.filter(log => {
     if (filters.search && !log.action.toLowerCase().includes(filters.search.toLowerCase()) &&
         !log.actor.email.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    if (filters.category && log.category !== filters.category) return false;
     if (filters.status && log.status !== filters.status) return false;
     return true;
   });
@@ -506,6 +463,16 @@ export const AuditLog: React.FC = () => {
         </div>
 
         {/* Table */}
+        {loading ? (
+          <div style={{ ...tableCardStyle, padding: '48px', textAlign: 'center' }}>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '15px' }}>Loading audit logs…</p>
+          </div>
+        ) : error ? (
+          <div style={{ ...tableCardStyle, padding: '48px', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', fontSize: '15px', marginBottom: '12px' }}>{error}</p>
+            <button style={exportBtnStyle} onClick={fetchLogs}>Retry</button>
+          </div>
+        ) : (
         <div style={tableCardStyle}>
           <table style={tableStyle}>
             <thead>
@@ -551,14 +518,15 @@ export const AuditLog: React.FC = () => {
 
           <div style={paginationStyle}>
             <span style={paginationInfoStyle}>
-              Showing {filteredLogs.length} of {logs.length} entries
+              Showing {filteredLogs.length} of {total} entries — Page {page} of {totalPages}
             </span>
             <div style={paginationBtnsStyle}>
-              <button style={pageBtnStyle(true)}>← Previous</button>
-              <button style={pageBtnStyle(true)}>Next →</button>
+              <button style={pageBtnStyle(page <= 1)} disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>← Previous</button>
+              <button style={pageBtnStyle(page >= totalPages)} disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
             </div>
           </div>
         </div>
+        )}
 
         {/* Detail Modal */}
         {selectedLog && (

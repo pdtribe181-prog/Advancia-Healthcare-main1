@@ -112,9 +112,24 @@ export function sentryRequestHandler(req: Request, _res: Response, next: NextFun
   next();
 }
 
-// Express tracing handler - placeholder for SDK 8.x
-export function sentryTracingHandler(_req: Request, _res: Response, next: NextFunction): void {
-  next();
+// Express tracing handler — instruments HTTP requests with Sentry spans
+export function sentryTracingHandler(req: Request, res: Response, next: NextFunction): void {
+  const method = req.method;
+  const route = req.originalUrl || req.url;
+  Sentry.startSpan(
+    {
+      name: `${method} ${route}`,
+      op: 'http.server',
+      attributes: { 'http.method': method, 'http.url': route },
+    },
+    (span) => {
+      res.on('finish', () => {
+        span?.setAttribute('http.status_code', res.statusCode);
+        span?.end();
+      });
+      next();
+    }
+  );
 }
 
 // Custom error capture with context
