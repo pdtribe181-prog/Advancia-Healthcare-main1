@@ -93,6 +93,62 @@ const disputeEvidenceSchema = z
     message: 'At least one evidence field is required',
   });
 
+const confirmPaymentIntentSchema = z.object({
+  paymentMethodId: z.string().startsWith('pm_').optional(),
+});
+
+const connectAccountSchema = z.object({
+  email: z.string().email(),
+  providerId: z.string().min(1).optional(),
+  businessName: z.string().max(200).optional(),
+  country: z.string().length(2).optional(),
+});
+
+const createTransferSchema = z.object({
+  amount: z.number().positive(),
+  destinationAccountId: z.string().startsWith('acct_'),
+  transactionId: z.string().optional(),
+  description: z.string().max(500).optional(),
+});
+
+const createSubscriptionSchema = z.object({
+  customerId: z.string().startsWith('cus_'),
+  priceId: z.string().startsWith('price_'),
+  patientId: z.string().min(1).optional(),
+  providerId: z.string().min(1).optional(),
+});
+
+const attachPaymentMethodSchema = z.object({
+  customerId: z.string().startsWith('cus_'),
+});
+
+const setupIntentSchema = z.object({
+  customerId: z.string().startsWith('cus_'),
+});
+
+const checkoutSessionSchema = z.object({
+  customerId: z.string().startsWith('cus_'),
+  amount: z.number().positive(),
+  productName: z.string().max(200).optional(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
+});
+
+const createInvoiceSchema = z.object({
+  customerId: z.string().startsWith('cus_'),
+  metadata: z.record(z.string(), z.string()).optional(),
+  items: z
+    .array(
+      z.object({
+        amount: z.number().positive(),
+        description: z.string().max(500),
+        currency: z.string().max(10).optional(),
+      })
+    )
+    .optional(),
+});
+
 // Debug middleware for stripe routes
 router.use((req, res, next) => {
   logger.debug('Stripe request', { method: req.method, path: req.path });
@@ -228,6 +284,7 @@ router.post(
   paymentLimiter,
   authenticate,
   validateParams(paymentIntentIdParamsSchema),
+  validateBody(confirmPaymentIntentSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { paymentMethodId } = req.body;
     const paymentIntent = await stripeServices.paymentIntents.confirm(
@@ -292,6 +349,7 @@ router.get(
 router.post(
   '/connect/accounts',
   authenticate,
+  validateBody(connectAccountSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { email, providerId, businessName, country } = req.body;
     const account = await stripeServices.connect.createExpressAccount({
@@ -375,6 +433,7 @@ router.post(
   '/transfers',
   authenticate,
   requireRole('admin'),
+  validateBody(createTransferSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { amount, destinationAccountId, transactionId, description } = req.body;
     // amount is already in cents — do NOT multiply by 100
@@ -398,6 +457,7 @@ router.post(
 router.post(
   '/subscriptions',
   authenticate,
+  validateBody(createSubscriptionSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { customerId, priceId, patientId, providerId } = req.body;
     const subscription = await stripeServices.subscriptions.create({
@@ -536,6 +596,7 @@ router.post(
   '/payment-methods/:id/attach',
   authenticate,
   validateParams(paymentMethodIdParamsSchema),
+  validateBody(attachPaymentMethodSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { customerId } = req.body;
     const paymentMethod = await stripeServices.paymentMethods.attach(
@@ -563,6 +624,7 @@ router.post(
 router.post(
   '/setup-intents',
   authenticate,
+  validateBody(setupIntentSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { customerId } = req.body;
     const setupIntent = await stripeServices.setupIntents.create(customerId);
@@ -580,6 +642,7 @@ router.post(
 router.post(
   '/checkout/sessions',
   authenticate,
+  validateBody(checkoutSessionSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { customerId, amount, productName, successUrl, cancelUrl, metadata } = req.body;
     // amount is already in cents — do NOT multiply by 100
@@ -612,6 +675,7 @@ router.get(
 router.post(
   '/invoices',
   authenticate,
+  validateBody(createInvoiceSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { customerId, metadata, items } = req.body;
     const invoice = await stripeServices.invoices.create(customerId, metadata);

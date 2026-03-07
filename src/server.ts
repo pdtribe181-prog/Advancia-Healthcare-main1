@@ -38,12 +38,61 @@ import { getAllCircuitBreakerStats } from './utils/circuit-breaker.js';
 import { csrfProtection } from './middleware/csrf.middleware.js';
 import { sanitizeBody } from './middleware/sanitize.middleware.js';
 import { z } from 'zod';
-import { validateParams, uuidSchema } from './middleware/validation.middleware.js';
+import { validateBody, validateParams, uuidSchema } from './middleware/validation.middleware.js';
 
 // Param validation schemas for inline routes
 const patientIdParams = z.object({ patientId: uuidSchema });
 const providerIdParams = z.object({ providerId: uuidSchema });
 const idParams = z.object({ id: uuidSchema });
+
+// Body validation schemas for inline routes
+const profileUpdateSchema = z.object({
+  full_name: z.string().max(200).optional(),
+  phone: z.string().max(30).optional(),
+  avatar_url: z.string().url().max(500).optional(),
+  date_of_birth: z.string().max(20).optional(),
+  address: z.string().max(500).optional(),
+});
+
+const byPatientSchema = z.object({ patientId: uuidSchema });
+const byProviderSchema = z.object({ providerId: uuidSchema });
+
+const createTransactionSchema = z.object({
+  patient_id: uuidSchema.optional(),
+  provider_id: uuidSchema.optional(),
+  amount: z.number().positive(),
+  currency: z.string().max(10).default('USD'),
+  type: z.string().max(50).optional(),
+  description: z.string().max(500).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+const createDisputeSchema = z.object({
+  transaction_id: uuidSchema.optional(),
+  reason: z.string().max(500),
+  description: z.string().max(2000).optional(),
+  type: z.enum(['refund', 'chargeback', 'billing_error', 'service_issue']).optional(),
+});
+
+const createWebhookSchema = z.object({
+  url: z.string().url().max(500),
+  events: z.array(z.string().max(100)).min(1).max(50),
+  secret: z.string().max(200).optional(),
+});
+
+const createApiKeySchema = z.object({
+  name: z.string().max(100),
+  scopes: z.array(z.string().max(50)).optional(),
+  expires_in_days: z.number().int().positive().max(365).optional(),
+});
+
+const contactFormSchema = z.object({
+  name: z.string().max(200),
+  email: z.string().email().max(200),
+  subject: z.string().max(300).optional(),
+  category: z.string().max(50).optional(),
+  message: z.string().max(5000),
+});
 import {
   requestId,
   requestLogger,
@@ -232,6 +281,7 @@ apiRouter.get(
 apiRouter.patch(
   '/profile',
   authenticateToken,
+  validateBody(profileUpdateSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { user } = req as AuthenticatedRequest;
     // Whitelist allowed fields to prevent mass assignment (e.g., role escalation)
@@ -283,6 +333,7 @@ apiRouter.post(
   '/transactions/by-patient',
   authenticateToken,
   apiLimiter,
+  validateBody(byPatientSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { user } = req as AuthenticatedRequest;
     const userRole = (req as AuthReqWithProfile).userProfile?.role;
@@ -298,6 +349,7 @@ apiRouter.post(
   '/transactions/by-provider',
   authenticateToken,
   apiLimiter,
+  validateBody(byProviderSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { user } = req as AuthenticatedRequest;
     const userRole = (req as AuthReqWithProfile).userProfile?.role;
@@ -312,6 +364,7 @@ apiRouter.post(
   '/transactions',
   authenticateToken,
   paymentLimiter,
+  validateBody(createTransactionSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const transaction = await apiServices.transactionsService.create(req.body);
     res.status(201).json({ success: true, data: transaction });
@@ -362,6 +415,7 @@ apiRouter.get(
 apiRouter.post(
   '/disputes',
   authenticateToken,
+  validateBody(createDisputeSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const dispute = await apiServices.disputesService.create(req.body);
     res.status(201).json({ success: true, data: dispute });
@@ -447,6 +501,7 @@ apiRouter.get(
 apiRouter.post(
   '/webhooks',
   authenticateToken,
+  validateBody(createWebhookSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { user } = req as AuthenticatedRequest;
     const webhook = await apiServices.webhooksService.create({ ...req.body, user_id: user.id });
@@ -478,6 +533,7 @@ apiRouter.get(
 apiRouter.post(
   '/api-keys',
   authenticateToken,
+  validateBody(createApiKeySchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { user } = req as AuthenticatedRequest;
     const apiKey = await apiServices.apiKeysService.create({ ...req.body, user_id: user.id });
@@ -494,6 +550,25 @@ apiRouter.delete(
     res.status(204).send();
   })
 );
+
+// ─── Contact Form ──────────────────────────────────────────────────────────
+apiRouter.post(
+  '/contact',
+  apiLimiter,
+  validateBody(contactFormSchema),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { name, email, subject, category, message } = req.body;
+    const admin = createServiceClient();
+    await admin.from('compliance_logs').insert({
+      action_type: 'contact_form',
+      resource_type: 'support',
+      details: { name, email, subject, category, message },
+    });
+    logger.info('Contact form submitted', { email, category });
+    res.status(201).json({ success: true, message: 'Message received' });
+  })
+);
+
 const getDatabaseStatus = async (): Promise<'connected' | 'error'> => {
   try {
     // Use service role to perform a real, lightweight PostgREST query.
@@ -584,15 +659,22 @@ const server = app.listen(PORT, async () => {
     } catch (error) {
       logger.warn(`Service catalog init attempt ${attempt}/${maxRetries} failed`, error as Error);
       if (attempt < maxRetries) {
-        logger.info(`Retrying in ${retryDelayMs / 1000}s... (run "npm run setup:db" if migrations not applied)`);
+        logger.info(
+          `Retrying in ${retryDelayMs / 1000}s... (run "npm run setup:db" if migrations not applied)`
+        );
         await new Promise((r) => setTimeout(r, retryDelayMs));
       } else {
-        logger.error('Failed to initialize service catalog after retries - services routes may fail', error as Error);
+        logger.error(
+          'Failed to initialize service catalog after retries - services routes may fail',
+          error as Error
+        );
       }
     }
   }
   if (!catalogReady) {
-    logger.info('Server running; apply migrations with "npm run setup:db" then restart to load service catalog');
+    logger.info(
+      'Server running; apply migrations with "npm run setup:db" then restart to load service catalog'
+    );
   }
 });
 
