@@ -384,16 +384,20 @@ describe('wallet.routes', () => {
   // ────────────── DELETE /wallet/:id ──────────────
 
   describe('DELETE /wallet/:id', () => {
+    const walletUuid = '550e8400-e29b-41d4-a716-446655440001';
+
     it('unlinks wallet successfully', async () => {
       mockGetById.mockResolvedValue({
-        id: 'w1',
+        id: walletUuid,
         user_id: mockUser.id,
         wallet_address: '0xabc',
         blockchain_network: 'ethereum',
       });
       mockUnlink.mockResolvedValue(undefined);
 
-      const res = await request(app).delete('/wallet/w1').set('Authorization', 'Bearer token');
+      const res = await request(app)
+        .delete(`/wallet/${walletUuid}`)
+        .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -406,7 +410,7 @@ describe('wallet.routes', () => {
       mockGetById.mockResolvedValue(null);
 
       const res = await request(app)
-        .delete('/wallet/nonexistent')
+        .delete(`/wallet/${walletUuid}`)
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(404);
@@ -416,9 +420,21 @@ describe('wallet.routes', () => {
       // Service returns null when userId doesn't match — route throws notFound
       mockGetById.mockResolvedValue(null);
 
-      const res = await request(app).delete('/wallet/w1').set('Authorization', 'Bearer token');
+      const res = await request(app)
+        .delete(`/wallet/${walletUuid}`)
+        .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(404);
+    });
+
+    it('returns 400 for invalid UUID param', async () => {
+      const res = await request(app)
+        .delete('/wallet/not-a-uuid')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid URL parameters');
+      expect(mockGetById).not.toHaveBeenCalled();
     });
   });
 
@@ -523,9 +539,11 @@ describe('wallet.routes', () => {
   // ────────────── PATCH /wallet/:id ──────────────
 
   describe('PATCH /wallet/:id', () => {
+    const walletUuid = '550e8400-e29b-41d4-a716-446655440001';
+
     it('updates wallet label', async () => {
       mockUpdate.mockResolvedValue({
-        id: 'w1',
+        id: walletUuid,
         wallet_address: '0xabc',
         blockchain_network: 'ethereum',
         wallet_label: 'New Label',
@@ -536,7 +554,7 @@ describe('wallet.routes', () => {
       });
 
       const res = await request(app)
-        .patch('/wallet/w1')
+        .patch(`/wallet/${walletUuid}`)
         .set('Authorization', 'Bearer token')
         .send({ label: 'New Label' });
 
@@ -547,7 +565,7 @@ describe('wallet.routes', () => {
 
     it('updates payout settings', async () => {
       mockUpdate.mockResolvedValue({
-        id: 'w1',
+        id: walletUuid,
         wallet_address: '0xabc',
         blockchain_network: 'ethereum',
         wallet_label: 'W',
@@ -558,7 +576,7 @@ describe('wallet.routes', () => {
       });
 
       const res = await request(app)
-        .patch('/wallet/w1')
+        .patch(`/wallet/${walletUuid}`)
         .set('Authorization', 'Bearer token')
         .send({ payoutEnabled: true, minPayoutAmount: 50, payoutCurrency: 'USDT' });
 
@@ -569,41 +587,54 @@ describe('wallet.routes', () => {
 
     it('returns 400 when minPayoutAmount is below 10', async () => {
       const res = await request(app)
-        .patch('/wallet/w1')
+        .patch(`/wallet/${walletUuid}`)
         .set('Authorization', 'Bearer token')
         .send({ minPayoutAmount: 5 });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('at least 10');
+      expect(res.body.error).toBe('Validation failed');
     });
 
     it('returns 400 for invalid currency', async () => {
       const res = await request(app)
-        .patch('/wallet/w1')
+        .patch(`/wallet/${walletUuid}`)
         .set('Authorization', 'Bearer token')
         .send({ payoutCurrency: 'DOGE' });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Invalid currency');
+      expect(res.body.error).toBe('Validation failed');
     });
 
     it('returns 400 when no valid updates provided', async () => {
       const res = await request(app)
-        .patch('/wallet/w1')
+        .patch(`/wallet/${walletUuid}`)
         .set('Authorization', 'Bearer token')
         .send({});
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('No valid updates');
+      expect(res.body.error).toBe('Validation failed');
+    });
+
+    it('returns 400 for invalid UUID param', async () => {
+      const res = await request(app)
+        .patch('/wallet/not-a-uuid')
+        .set('Authorization', 'Bearer token')
+        .send({ label: 'X' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid URL parameters');
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
   });
 
   // ────────────── POST /wallet/:id/primary ──────────────
 
   describe('POST /wallet/:id/primary', () => {
+    const walletUuid = '550e8400-e29b-41d4-a716-446655440001';
+
     it('sets wallet as primary payout', async () => {
       mockSetPrimary.mockResolvedValue({
-        id: 'w1',
+        id: walletUuid,
         wallet_address: '0xabc',
         is_primary_payout: true,
         payout_enabled: true,
@@ -611,7 +642,7 @@ describe('wallet.routes', () => {
       });
 
       const res = await request(app)
-        .post('/wallet/w1/primary')
+        .post(`/wallet/${walletUuid}/primary`)
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
@@ -626,25 +657,37 @@ describe('wallet.routes', () => {
       mockSetPrimary.mockRejectedValue(new Error('Wallet not found'));
 
       const res = await request(app)
-        .post('/wallet/w1/primary')
+        .post(`/wallet/${walletUuid}/primary`)
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(500);
+    });
+
+    it('returns 400 for invalid UUID param', async () => {
+      const res = await request(app)
+        .post('/wallet/not-a-uuid/primary')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid URL parameters');
+      expect(mockSetPrimary).not.toHaveBeenCalled();
     });
   });
 
   // ────────────── POST /wallet/:id/revoke ──────────────
 
   describe('POST /wallet/:id/revoke', () => {
+    const walletUuid = '550e8400-e29b-41d4-a716-446655440001';
+
     it('revokes a wallet as admin', async () => {
       mockRevoke.mockResolvedValue({
-        id: 'w1',
+        id: walletUuid,
         verification_status: 'revoked',
         payout_enabled: false,
       });
 
       const res = await request(app)
-        .post('/wallet/w1/revoke')
+        .post(`/wallet/${walletUuid}/revoke`)
         .set('Authorization', 'Bearer token')
         .send({ reason: 'Suspicious activity' });
 
@@ -660,11 +703,22 @@ describe('wallet.routes', () => {
       mockRevoke.mockRejectedValue(new Error('DB error'));
 
       const res = await request(app)
-        .post('/wallet/w1/revoke')
+        .post(`/wallet/${walletUuid}/revoke`)
         .set('Authorization', 'Bearer token')
         .send({ reason: 'test' });
 
       expect(res.status).toBe(500);
+    });
+
+    it('returns 400 for invalid UUID param', async () => {
+      const res = await request(app)
+        .post('/wallet/not-a-uuid/revoke')
+        .set('Authorization', 'Bearer token')
+        .send({ reason: 'test' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid URL parameters');
+      expect(mockRevoke).not.toHaveBeenCalled();
     });
   });
 });

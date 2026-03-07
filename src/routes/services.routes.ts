@@ -24,7 +24,11 @@ import { Router, Request, Response } from 'express';
 import { supabase } from '../lib/supabase.js';
 import { asyncHandler } from '../utils/errors.js';
 import { z } from 'zod';
-import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+} from '../middleware/validation.middleware.js';
 import {
   authenticate,
   requireRole,
@@ -61,6 +65,10 @@ const listServicesQuerySchema = z.object({
   search: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).default(0),
+});
+
+const serviceIdParamsSchema = z.object({
+  id: z.string().uuid(),
 });
 
 // ============================================================
@@ -201,6 +209,7 @@ router.put(
   '/:id',
   authenticate,
   requireRole('admin'),
+  validateParams(serviceIdParamsSchema),
   validateBody(updateServiceSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
@@ -240,6 +249,7 @@ router.delete(
   '/:id',
   authenticate,
   requireRole('admin'),
+  validateParams(serviceIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
 
@@ -277,6 +287,7 @@ router.post(
   '/:id/activate',
   authenticate,
   requireRole('admin'),
+  validateParams(serviceIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
 

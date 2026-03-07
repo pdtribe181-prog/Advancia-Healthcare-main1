@@ -17,8 +17,46 @@ import {
 import { supabase } from '../lib/supabase.js';
 import { apiLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
+import { validateBody, validateParams } from '../middleware/validation.middleware.js';
+import { z } from 'zod';
 
 const router = Router();
+
+// ============================================================
+// VALIDATION SCHEMAS
+// ============================================================
+
+const walletIdParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
+const walletChallengeSchema = z.object({
+  walletAddress: z.string().min(1),
+  network: z.enum(['ethereum', 'solana', 'polygon', 'base', 'arbitrum']),
+});
+
+const walletVerifySchema = z.object({
+  challengeId: z.string().min(1),
+  signature: z.string().min(1),
+  walletAddress: z.string().min(1),
+  network: z.enum(['ethereum', 'solana', 'polygon', 'base', 'arbitrum']),
+  label: z.string().max(100).optional(),
+});
+
+const walletUpdateSchema = z
+  .object({
+    label: z.string().max(100).optional(),
+    payoutEnabled: z.boolean().optional(),
+    minPayoutAmount: z.number().min(10).optional(),
+    payoutCurrency: z.enum(['USDC', 'USDT', 'ETH', 'SOL']).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one update field is required',
+  });
+
+const walletRevokeSchema = z.object({
+  reason: z.string().min(1).max(500).optional(),
+});
 
 /**
  * Web3 Wallet Routes
@@ -58,17 +96,9 @@ router.post(
   '/challenge',
   sensitiveLimiter,
   authenticate,
+  validateBody(walletChallengeSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { walletAddress, network } = req.body;
-
-    // Validate inputs
-    if (!walletAddress || typeof walletAddress !== 'string') {
-      throw AppError.badRequest('Wallet address is required');
-    }
-
-    if (!network || !SUPPORTED_NETWORKS.includes(network)) {
-      throw AppError.badRequest(`Invalid network. Supported: ${SUPPORTED_NETWORKS.join(', ')}`);
-    }
 
     // Validate address format
     if (!isValidWalletAddress(walletAddress, network)) {
@@ -135,17 +165,9 @@ router.post(
   '/verify',
   sensitiveLimiter,
   authenticateWithProfile,
+  validateBody(walletVerifySchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { challengeId, signature, walletAddress, network, label } = req.body;
-
-    // Validate inputs
-    if (!challengeId || !signature || !walletAddress || !network) {
-      throw AppError.badRequest('challengeId, signature, walletAddress, and network are required');
-    }
-
-    if (!SUPPORTED_NETWORKS.includes(network)) {
-      throw AppError.badRequest(`Invalid network. Supported: ${SUPPORTED_NETWORKS.join(', ')}`);
-    }
 
     // Get provider ID if user is a provider
     let providerId: string | undefined;
@@ -370,6 +392,8 @@ router.patch(
   '/:id',
   apiLimiter,
   authenticate,
+  validateParams(walletIdParamsSchema),
+  validateBody(walletUpdateSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
     const { label, payoutEnabled, minPayoutAmount, payoutCurrency } = req.body;
@@ -378,21 +402,10 @@ router.patch(
     if (label !== undefined) updates.wallet_label = label;
     if (payoutEnabled !== undefined) updates.payout_enabled = payoutEnabled;
     if (minPayoutAmount !== undefined) {
-      if (minPayoutAmount < 10) {
-        throw AppError.badRequest('Minimum payout amount must be at least 10');
-      }
       updates.min_payout_amount = minPayoutAmount;
     }
     if (payoutCurrency !== undefined) {
-      const validCurrencies = ['USDC', 'USDT', 'ETH', 'SOL'];
-      if (!validCurrencies.includes(payoutCurrency)) {
-        throw AppError.badRequest(`Invalid currency. Supported: ${validCurrencies.join(', ')}`);
-      }
       updates.payout_currency = payoutCurrency;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw AppError.badRequest('No valid updates provided');
     }
 
     const wallet = await linkedWalletsService.update(walletId, req.user!.id, updates);
@@ -422,6 +435,7 @@ router.post(
   sensitiveLimiter,
   authenticateWithProfile,
   requireRole('provider', 'admin'),
+  validateParams(walletIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
     const wallet = await linkedWalletsService.setPrimaryPayout(walletId, req.user!.id);
@@ -456,6 +470,7 @@ router.delete(
   '/:id',
   sensitiveLimiter,
   authenticate,
+  validateParams(walletIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
     // Get wallet before deleting for audit
@@ -496,6 +511,8 @@ router.post(
   sensitiveLimiter,
   authenticateWithProfile,
   requireRole('admin'),
+  validateParams(walletIdParamsSchema),
+  validateBody(walletRevokeSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
     const { reason } = req.body;
