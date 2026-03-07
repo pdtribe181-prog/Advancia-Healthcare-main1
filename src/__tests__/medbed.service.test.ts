@@ -44,8 +44,12 @@ jest.unstable_mockModule('../utils/errors.js', () => {
       this.statusCode = statusCode;
       this.code = code;
     }
-    static internal(msg: string) { return new AppError(msg, 500, 'INTERNAL_ERROR'); }
-    static badRequest(msg: string) { return new AppError(msg, 400, 'BAD_REQUEST'); }
+    static internal(msg: string) {
+      return new AppError(msg, 500, 'INTERNAL_ERROR');
+    }
+    static badRequest(msg: string) {
+      return new AppError(msg, 400, 'BAD_REQUEST');
+    }
   }
   return {
     AppError,

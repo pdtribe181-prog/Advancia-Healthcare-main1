@@ -6,7 +6,7 @@ Healthcare payment and compliance management platform. Node.js/Express REST API 
 
 ## Tech Stack
 
-- **Runtime**: Node.js 22.x (ESM, `"type": "module"`)
+- **Runtime**: Node.js 20.x (ESM, `"type": "module"`)
 - **Backend**: Express 5, TypeScript 5, Zod validation
 - **Database**: Supabase (PostgreSQL) via `@supabase/supabase-js`
 - **Frontend**: React 19, Vite 7, Vitest, React Router 7
@@ -69,7 +69,7 @@ In CI, environment variables are provided via GitHub Actions secrets with safe t
 
 ## Development Commands (Backend — repo root)
 
-Always run `npm install` first. All commands use Node 22.
+Always run `npm install` first. All commands use Node 20.
 
 ```bash
 npm install                   # Install dependencies
@@ -109,6 +109,7 @@ FRONTEND_URL=http://localhost:5173
 - `e2e.test.ts` and `api.test.ts` are excluded from the Jest run (they need a running server).
 - The `postbuild` script copies `openapi.yaml` to `dist/`. Build fails if this step errors.
 - TypeScript path aliases are not used; imports use relative paths with `.js` extensions.
+- The `config/jest.config.ts` is an unused duplicate; the root `jest.config.ts` is authoritative.
 
 ## Development Commands (Frontend — `frontend/` directory)
 
@@ -136,7 +137,7 @@ On push to `main`/`develop` and PRs to `main`:
 5. **E2E API Tests** (needs backend) — Playwright with chromium, `npm run test:e2e:api`
 6. **Docker Build** (needs backend, main push only) — builds image, does not push
 
-All jobs run on `ubuntu-latest` with Node 22. Cancels in-progress runs on new pushes.
+All jobs run on `ubuntu-latest` with Node 20. Cancels in-progress runs on new pushes.
 
 ## Key Architecture Notes
 

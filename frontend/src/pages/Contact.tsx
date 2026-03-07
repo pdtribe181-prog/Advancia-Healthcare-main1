@@ -1,5 +1,6 @@
 import React, { useState, CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 import '../styles.css';
 
 interface ContactForm {
@@ -318,6 +319,11 @@ export const Contact: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
+                {error && (
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#ef4444', fontSize: '14px' }}>
+                    {error}
+                  </div>
+                )}
                 <div style={fieldStyle}>
                   <label style={labelStyle}>Your Name *</label>
                   <input
