@@ -677,8 +677,40 @@ export class AutomationOrchestrationService {
   // Utility methods
 
   private async evaluateConditions(conditions: any[], context: WorkflowContext): Promise<boolean> {
-    // Implement condition evaluation logic
-    return true; // Placeholder
+    for (const condition of conditions) {
+      const fieldValue =
+        context.originalContext[condition.field] ?? context.variables[condition.field];
+
+      switch (condition.operator) {
+        case 'equals':
+          if (fieldValue !== condition.value) return false;
+          break;
+        case 'not_equals':
+          if (fieldValue === condition.value) return false;
+          break;
+        case 'greater_than':
+          if (!(Number(fieldValue) > Number(condition.value))) return false;
+          break;
+        case 'less_than':
+          if (!(Number(fieldValue) < Number(condition.value))) return false;
+          break;
+        case 'contains':
+          if (typeof fieldValue !== 'string' || !fieldValue.includes(String(condition.value)))
+            return false;
+          break;
+        case 'and':
+          // Boolean field check — field must be truthy
+          if (!fieldValue) return false;
+          break;
+        case 'or':
+          // For 'or', at least one condition in the array must pass — handled at array level
+          break;
+        default:
+          // Treat unknown operators as truthy equality check
+          if (fieldValue !== condition.value) return false;
+      }
+    }
+    return true;
   }
 
   private async handleWorkflowErrors(
@@ -698,8 +730,22 @@ export class AutomationOrchestrationService {
   }
 
   private processVariables(obj: any, variables: Record<string, any>): any {
-    // Process template variables in configuration
-    return obj; // Placeholder implementation
+    if (typeof obj === 'string') {
+      return obj.replace(/\{\{(\w+)\}\}/g, (_, key) =>
+        variables[key] !== undefined ? String(variables[key]) : `{{${key}}}`
+      );
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.processVariables(item, variables));
+    }
+    if (obj !== null && typeof obj === 'object') {
+      const result: Record<string, any> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = this.processVariables(value, variables);
+      }
+      return result;
+    }
+    return obj;
   }
 
   private calculateRetryDelay(baseDelay: number, attempt: number, strategy: string): number {

@@ -6,7 +6,7 @@
  * POST /metrics/persist   — Force-persist snapshot to DB (admin-only)
  */
 
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import {
   getMetricsSnapshot,
   getPrometheusMetrics,
@@ -16,8 +16,34 @@ import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Prometheus-style text output (no auth — meant for monitoring scrapers with IP allowlist)
-router.get('/', (_req, res) => {
+/**
+ * Restrict Prometheus scrape endpoint to configured IP allowlist
+ * or require a Bearer token via the standard auth middleware.
+ */
+const metricsAuth = (req: Request, res: Response, next: NextFunction): void => {
+  const allowedIps = (process.env.METRICS_ALLOWED_IPS || '')
+    .split(',')
+    .map((ip) => ip.trim())
+    .filter(Boolean);
+
+  // If an allowlist is configured, check the caller's IP
+  if (allowedIps.length > 0) {
+    const clientIp = req.ip || req.socket.remoteAddress || '';
+    if (
+      allowedIps.includes(clientIp) ||
+      (allowedIps.includes('127.0.0.1') && (clientIp === '::1' || clientIp === '127.0.0.1'))
+    ) {
+      next();
+      return;
+    }
+  }
+
+  // Fall back to standard Bearer-token auth
+  authenticate(req, res, next);
+};
+
+// Prometheus-style text output — IP-allowlisted or authenticated
+router.get('/', metricsAuth, (_req, res) => {
   res.set('Content-Type', 'text/plain; charset=utf-8');
   res.send(getPrometheusMetrics());
 });

@@ -727,13 +727,40 @@ export class NotificationOrchestrationService {
     }
   }
 
-  // Placeholder implementations for additional methods
   private async getUserEngagementHistory(userId: string): Promise<any> {
-    return {}; // Implement engagement history retrieval
+    try {
+      const serviceClient = createServiceClient();
+      const { data } = await serviceClient
+        .from('notifications')
+        .select('channel, status, read_at, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      return data || [];
+    } catch {
+      return [];
+    }
   }
 
   private calculateChannelEngagement(history: any): Record<string, number> {
-    return {}; // Implement engagement calculation
+    if (!Array.isArray(history) || history.length === 0) {
+      return { email: 0.5, sms: 0.5, push: 0.5, in_app: 0.5 };
+    }
+
+    const channelStats: Record<string, { sent: number; read: number }> = {};
+    for (const entry of history) {
+      const ch = entry.channel || 'email';
+      if (!channelStats[ch]) channelStats[ch] = { sent: 0, read: 0 };
+      channelStats[ch].sent++;
+      if (entry.read_at || entry.status === 'read') channelStats[ch].read++;
+    }
+
+    const engagement: Record<string, number> = {};
+    for (const [channel, stats] of Object.entries(channelStats)) {
+      engagement[channel] = stats.sent > 0 ? stats.read / stats.sent : 0;
+    }
+    return engagement;
   }
 
   private getAvailableChannels(userPrefs: UserPreferencesType): string[] {

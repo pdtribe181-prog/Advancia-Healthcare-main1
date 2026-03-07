@@ -1,5 +1,6 @@
 import React, { useState, CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../providers/AuthProvider';
 import '../styles.css';
 
@@ -54,13 +55,17 @@ const stepStyle = (active: boolean, completed: boolean): CSSProperties => ({
   justifyContent: 'center',
   fontSize: '14px',
   fontWeight: 700,
-  background: completed ? 'rgba(16, 185, 129, 0.2)' : active ? 'rgba(96, 128, 245, 0.2)' : 'rgba(255,255,255,0.05)',
+  background: completed
+    ? 'rgba(16, 185, 129, 0.2)'
+    : active
+      ? 'rgba(96, 128, 245, 0.2)'
+      : 'rgba(255,255,255,0.05)',
   color: completed ? '#10b981' : active ? 'var(--primary)' : 'rgba(255,255,255,0.4)',
   border: completed
     ? '2px solid #10b981'
     : active
-    ? '2px solid var(--primary)'
-    : '2px solid rgba(255,255,255,0.1)',
+      ? '2px solid var(--primary)'
+      : '2px solid rgba(255,255,255,0.1)',
   transition: 'all 0.3s',
 });
 
@@ -99,54 +104,10 @@ const qrPlaceholderStyle: CSSProperties = {
   padding: '16px',
 };
 
-// Simple QR code generator (placeholder pattern)
-const QRCodeDisplay: React.FC<{ data: string }> = ({ data: _data }) => {
-  // In production, use a real QR library like qrcode.react
-  // This is a placeholder visual
+const QRCodeDisplay: React.FC<{ data: string }> = ({ data }) => {
   return (
     <div style={qrPlaceholderStyle}>
-      <svg viewBox="0 0 100 100" width="168" height="168">
-        <rect fill="#ffffff" width="100" height="100" />
-        {/* Simplified QR pattern for visual */}
-        <rect fill="#000000" x="10" y="10" width="25" height="25" />
-        <rect fill="#ffffff" x="15" y="15" width="15" height="15" />
-        <rect fill="#000000" x="18" y="18" width="9" height="9" />
-
-        <rect fill="#000000" x="65" y="10" width="25" height="25" />
-        <rect fill="#ffffff" x="70" y="15" width="15" height="15" />
-        <rect fill="#000000" x="73" y="18" width="9" height="9" />
-
-        <rect fill="#000000" x="10" y="65" width="25" height="25" />
-        <rect fill="#ffffff" x="15" y="70" width="15" height="15" />
-        <rect fill="#000000" x="18" y="73" width="9" height="9" />
-
-        {/* Data pattern */}
-        <rect fill="#000000" x="40" y="10" width="5" height="5" />
-        <rect fill="#000000" x="50" y="15" width="5" height="5" />
-        <rect fill="#000000" x="45" y="20" width="5" height="10" />
-        <rect fill="#000000" x="55" y="25" width="5" height="5" />
-
-        <rect fill="#000000" x="10" y="40" width="5" height="5" />
-        <rect fill="#000000" x="20" y="45" width="10" height="5" />
-        <rect fill="#000000" x="35" y="40" width="5" height="5" />
-        <rect fill="#000000" x="45" y="45" width="15" height="5" />
-        <rect fill="#000000" x="65" y="42" width="10" height="5" />
-        <rect fill="#000000" x="80" y="45" width="10" height="5" />
-
-        <rect fill="#000000" x="40" y="55" width="10" height="5" />
-        <rect fill="#000000" x="55" y="60" width="5" height="5" />
-        <rect fill="#000000" x="65" y="55" width="5" height="10" />
-        <rect fill="#000000" x="75" y="60" width="10" height="5" />
-
-        <rect fill="#000000" x="40" y="70" width="5" height="5" />
-        <rect fill="#000000" x="50" y="75" width="5" height="5" />
-        <rect fill="#000000" x="60" y="70" width="10" height="5" />
-        <rect fill="#000000" x="75" y="75" width="5" height="10" />
-        <rect fill="#000000" x="85" y="70" width="5" height="5" />
-
-        <rect fill="#000000" x="45" y="85" width="15" height="5" />
-        <rect fill="#000000" x="65" y="85" width="10" height="5" />
-      </svg>
+      <QRCodeSVG value={data} size={168} level="M" />
     </div>
   );
 };
@@ -306,8 +267,14 @@ export const TwoFactorSetup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [backupCodes] = useState([
-    'A1B2-C3D4', 'E5F6-G7H8', 'I9J0-K1L2', 'M3N4-O5P6',
-    'Q7R8-S9T0', 'U1V2-W3X4', 'Y5Z6-A7B8', 'C9D0-E1F2',
+    'A1B2-C3D4',
+    'E5F6-G7H8',
+    'I9J0-K1L2',
+    'M3N4-O5P6',
+    'Q7R8-S9T0',
+    'U1V2-W3X4',
+    'Y5Z6-A7B8',
+    'C9D0-E1F2',
   ]);
 
   const otpAuthUrl = `otpauth://totp/Advancia:${user?.email || 'user@example.com'}?secret=${secret}&issuer=Advancia`;
@@ -358,7 +325,7 @@ export const TwoFactorSetup: React.FC = () => {
     setLoading(true);
     try {
       // Simulate API verification
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       // In production: await apiService.post('/auth/2fa/verify', { code: fullCode, secret });
       setStep(4);
     } catch {
@@ -425,7 +392,9 @@ If you lose access to your authenticator app, you can use one of these codes to 
                 <div style={{ ...appIconStyle, background: '#4285F4' }}>G</div>
                 <div>
                   <div style={{ color: '#ffffff', fontWeight: 600 }}>Google Authenticator</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>iOS & Android</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+                    iOS & Android
+                  </div>
                 </div>
               </a>
 
@@ -438,7 +407,9 @@ If you lose access to your authenticator app, you can use one of these codes to 
                 <div style={{ ...appIconStyle, background: '#EC1C24' }}>A</div>
                 <div>
                   <div style={{ color: '#ffffff', fontWeight: 600 }}>Authy</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>iOS, Android, Desktop</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+                    iOS, Android, Desktop
+                  </div>
                 </div>
               </a>
 
@@ -451,7 +422,9 @@ If you lose access to your authenticator app, you can use one of these codes to 
                 <div style={{ ...appIconStyle, background: '#00A4EF' }}>M</div>
                 <div>
                   <div style={{ color: '#ffffff', fontWeight: 600 }}>Microsoft Authenticator</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>iOS & Android</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+                    iOS & Android
+                  </div>
                 </div>
               </a>
 
@@ -464,9 +437,7 @@ If you lose access to your authenticator app, you can use one of these codes to 
           {/* Step 2: Scan QR */}
           {step === 2 && (
             <div style={sectionStyle}>
-              <p style={instructionStyle}>
-                Open your authenticator app and scan this QR code:
-              </p>
+              <p style={instructionStyle}>Open your authenticator app and scan this QR code:</p>
 
               <div style={qrContainerStyle}>
                 <QRCodeDisplay data={otpAuthUrl} />
@@ -558,7 +529,9 @@ If you lose access to your authenticator app, you can use one of these codes to 
 
               <div style={backupCodesStyle}>
                 {backupCodes.map((code, i) => (
-                  <div key={i} style={backupCodeStyle}>{code}</div>
+                  <div key={i} style={backupCodeStyle}>
+                    {code}
+                  </div>
                 ))}
               </div>
 
@@ -574,7 +547,10 @@ If you lose access to your authenticator app, you can use one of these codes to 
 
           {step !== 4 && (
             <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Link to="/security" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', textDecoration: 'none' }}>
+              <Link
+                to="/security"
+                style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', textDecoration: 'none' }}
+              >
                 Cancel Setup
               </Link>
             </div>
