@@ -81,7 +81,7 @@ export function getRedisClient(): IORedisClient {
 
     _ioredis.on('error', (err) => {
       // Silently swallow connection errors; callers handle null gracefully
-      console.error('[Redis] connection error:', err.message);
+      logger.error('[Redis] connection error:', err);
     });
   }
   return _ioredis;

@@ -1,6 +1,7 @@
 // MedBed Service Logic
 import { getSupabaseClient, createServiceClient } from '../lib/supabase.js';
 import { MedBed, MedBedBooking } from '../types/medbed.types.js';
+import { AppError } from '../utils/errors.js';
 
 export class MedBedService {
   private supabase = getSupabaseClient();
@@ -15,7 +16,7 @@ export class MedBedService {
       .select('*')
       .eq('is_active', true);
 
-    if (error) throw new Error(error.message);
+    if (error) throw AppError.internal(error.message);
     return data as MedBed[];
   }
 
@@ -29,7 +30,7 @@ export class MedBedService {
       .eq('id', id)
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) throw AppError.internal(error.message);
     return data as MedBed;
   }
 
@@ -47,7 +48,7 @@ export class MedBedService {
       .lt('start_time', endTime)
       .gt('end_time', startTime);
 
-    if (error) throw new Error(error.message);
+    if (error) throw AppError.internal(error.message);
 
     // If any bookings found, it's not available
     return data.length === 0;
@@ -66,12 +67,12 @@ export class MedBedService {
     // 1. Verify availability first
     const isAvailable = await this.checkAvailability(medBedId, startTime, endTime);
     if (!isAvailable) {
-      throw new Error('Selected time slot is not available');
+      throw new AppError('Selected time slot is not available', 409, 'SLOT_UNAVAILABLE');
     }
 
     // 2. Get MedBed details to calculate cost
     const medBed = await this.getMedBedById(medBedId);
-    if (!medBed) throw new Error('MedBed not found');
+    if (!medBed) throw new AppError('MedBed not found', 404, 'NOT_FOUND');
 
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -93,7 +94,7 @@ export class MedBedService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) throw AppError.internal(error.message);
     return data;
   }
 
@@ -107,7 +108,7 @@ export class MedBedService {
       .eq('user_id', userId)
       .order('start_time', { ascending: false });
 
-    if (error) throw new Error(error.message);
+    if (error) throw AppError.internal(error.message);
     return data;
   }
 
@@ -122,8 +123,8 @@ export class MedBedService {
       .eq('id', bookingId)
       .single();
 
-    if (!booking) throw new Error('Booking not found');
-    if (booking.user_id !== userId) throw new Error('Unauthorized');
+    if (!booking) throw new AppError('Booking not found', 404, 'NOT_FOUND');
+    if (booking.user_id !== userId) throw new AppError('Unauthorized', 403, 'FORBIDDEN');
 
     const { data, error } = await this.serviceClient
       .from('med_bed_bookings')
@@ -132,7 +133,7 @@ export class MedBedService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) throw AppError.internal(error.message);
     return data;
   }
 }

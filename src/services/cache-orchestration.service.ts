@@ -709,8 +709,9 @@ export class CacheOrchestrationService {
 
   private async getKeysByPattern(pattern: string): Promise<string[]> {
     const keys: string[] = [];
-    // Convert glob-style pattern to regex
-    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+    // Convert glob-style pattern to regex (escape special chars first to prevent ReDoS)
+    const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp('^' + escaped.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
     for (const key of this.memoryCache.keys()) {
       if (regex.test(key)) {
         keys.push(key);

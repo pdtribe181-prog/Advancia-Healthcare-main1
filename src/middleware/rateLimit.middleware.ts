@@ -3,6 +3,7 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { createRequire } from 'module';
 import { getEnv, Env } from '../config/env.js';
 import { getRedisKind, getRedisClient } from '../lib/redis.js';
+import { logger } from '../middleware/logging.middleware.js';
 
 const require = createRequire(import.meta.url);
 const { ipKeyGenerator } = require('express-rate-limit') as {
@@ -41,7 +42,7 @@ async function getRedisStore(): Promise<Store | undefined> {
         sendCommand: (...args: string[]) => client.call(...args),
         prefix: 'rl:',
       });
-      console.log('[RateLimit] Using Redis store');
+      logger.info('[RateLimit] Using Redis store');
       return _redisStore;
     }
     // For Upstash or memory, fall through to the default MemoryStore

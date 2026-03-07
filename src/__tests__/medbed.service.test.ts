@@ -35,12 +35,26 @@ jest.unstable_mockModule('../middleware/auth.middleware.js', () => ({
   AuthenticatedRequest: {},
 }));
 
-jest.unstable_mockModule('../utils/errors.js', () => ({
-  sendErrorResponse: jest.fn<any>((res: any, error: any) => {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ success: false, error: msg });
-  }),
-}));
+jest.unstable_mockModule('../utils/errors.js', () => {
+  class AppError extends Error {
+    statusCode: number;
+    code: string;
+    constructor(message: string, statusCode = 500, code = 'INTERNAL_ERROR') {
+      super(message);
+      this.statusCode = statusCode;
+      this.code = code;
+    }
+    static internal(msg: string) { return new AppError(msg, 500, 'INTERNAL_ERROR'); }
+    static badRequest(msg: string) { return new AppError(msg, 400, 'BAD_REQUEST'); }
+  }
+  return {
+    AppError,
+    sendErrorResponse: jest.fn<any>((res: any, error: any) => {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ success: false, error: msg });
+    }),
+  };
+});
 
 const { MedBedService } = await import('../services/medbed.service.js');
 

@@ -15,10 +15,12 @@
  */
 
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
+import { validateBody } from '../middleware/validation.middleware.js';
 import {
   exportUserData,
   eraseUserData,
@@ -28,6 +30,16 @@ import {
 import { createServiceClient } from '../lib/supabase.js';
 
 const router = Router();
+
+const gdprErasureSchema = z.object({
+  confirmDeletion: z.literal(true),
+  userId: z.string().min(1).optional(),
+});
+
+const gdprConsentSchema = z.object({
+  consentType: z.enum(['treatment', 'data_sharing', 'marketing', 'research']),
+  granted: z.boolean(),
+});
 
 // ────────────────────────────────────────────────────────────
 // GET /gdpr/export — full personal data export
@@ -70,17 +82,10 @@ router.post(
   '/erasure',
   authenticate,
   sensitiveLimiter,
+  validateBody(gdprErasureSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const requesterId = req.user!.id;
-    const { confirmDeletion, userId: targetUserId } = req.body;
-
-    if (!confirmDeletion) {
-      throw new AppError(
-        'You must set confirmDeletion: true to proceed with data erasure',
-        400,
-        'CONFIRMATION_REQUIRED'
-      );
-    }
+    const { userId: targetUserId } = req.body;
 
     // Determine whose data to erase
     let userToErase = requesterId;
@@ -149,26 +154,10 @@ router.get(
 router.put(
   '/consents',
   authenticate,
+  validateBody(gdprConsentSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user!.id;
     const { consentType, granted } = req.body;
-
-    if (!consentType || typeof granted !== 'boolean') {
-      throw new AppError(
-        'consentType (string) and granted (boolean) are required',
-        400,
-        'VALIDATION_ERROR'
-      );
-    }
-
-    const validTypes = ['treatment', 'data_sharing', 'marketing', 'research'];
-    if (!validTypes.includes(consentType)) {
-      throw new AppError(
-        `consentType must be one of: ${validTypes.join(', ')}`,
-        400,
-        'VALIDATION_ERROR'
-      );
-    }
 
     // Resolve patient ID
     const sb = createServiceClient();

@@ -19,6 +19,7 @@ import { Request, Response, NextFunction } from 'express';
 import { createGzip, createDeflate, createBrotliCompress } from 'zlib';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
+import { logger } from './logging.middleware.js';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -186,7 +187,7 @@ export function createCompressionMiddleware(opts: Partial<CompressionOptions> = 
           originalEnd.call(res, result, 'utf8' as BufferEncoding, callback);
         });
         compressor.on('error', (error) => {
-          console.error('[Compression] Error:', error);
+          logger.error('[Compression] Error:', error);
           // Fallback to uncompressed response
           res.removeHeader('Content-Encoding');
           originalEnd.call(res, chunk, encoding, callback);
@@ -194,7 +195,7 @@ export function createCompressionMiddleware(opts: Partial<CompressionOptions> = 
 
         compressor.end(bufferChunk);
       } catch (error) {
-        console.error('[Compression] Unexpected error:', error);
+        logger.error('[Compression] Unexpected error:', error instanceof Error ? error : undefined);
         // Fallback to uncompressed response
         res.removeHeader('Content-Encoding');
         return originalEnd.call(this, chunk, encoding, callback);

@@ -5,6 +5,7 @@
  */
 
 import { getEnv } from './env.js';
+import { logger } from '../middleware/logging.middleware.js';
 
 const env = getEnv();
 
@@ -60,13 +61,13 @@ export function validateConfig(): void {
   // Still warn about key mismatches
   if (env.NODE_ENV !== 'production') {
     if (env.STRIPE_SECRET_KEY.startsWith('sk_live')) {
-      console.warn('⚠️ WARNING: Using live Stripe keys in non-production environment!');
+      logger.warn('WARNING: Using live Stripe keys in non-production environment!');
     }
   }
 
   if (env.NODE_ENV === 'production') {
     if (env.STRIPE_SECRET_KEY.startsWith('sk_test')) {
-      console.warn('⚠️ WARNING: Using test Stripe keys in production environment!');
+      logger.warn('WARNING: Using test Stripe keys in production environment!');
     }
   }
 }
