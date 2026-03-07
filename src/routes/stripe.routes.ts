@@ -79,6 +79,14 @@ const paymentMethodIdParamsSchema = z.object({
   id: z.string().startsWith('pm_'),
 });
 
+const invoiceIdParamsSchema = z.object({
+  id: z.string().startsWith('in_'),
+});
+
+const checkoutSessionIdParamsSchema = z.object({
+  id: z.string().startsWith('cs_'),
+});
+
 const disputeEvidenceSchema = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
   .refine((value) => Object.keys(value).length > 0, {
@@ -590,6 +598,7 @@ router.post(
 router.get(
   '/checkout/sessions/:id',
   authenticate,
+  validateParams(checkoutSessionIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const session = await stripeServices.checkout.get(String(req.params.id));
     res.json({ success: true, data: session });
@@ -630,6 +639,7 @@ router.post(
 router.post(
   '/invoices/:id/finalize',
   authenticate,
+  validateParams(invoiceIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const invoice = await stripeServices.invoices.finalizeAndSend(String(req.params.id));
     res.json({ success: true, data: invoice });
@@ -639,6 +649,7 @@ router.post(
 router.post(
   '/invoices/:id/pay',
   authenticate,
+  validateParams(invoiceIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const invoice = await stripeServices.invoices.markPaid(String(req.params.id));
     res.json({ success: true, data: invoice });
@@ -648,6 +659,7 @@ router.post(
 router.post(
   '/invoices/:id/void',
   authenticate,
+  validateParams(invoiceIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const invoice = await stripeServices.invoices.void(String(req.params.id));
     res.json({ success: true, data: invoice });
@@ -752,6 +764,7 @@ router.get(
 router.get(
   '/payment-history/:id',
   authenticateWithProfile,
+  validateParams(paymentIntentIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const paymentIntentId = req.params.id as string;
     const paymentIntent = (await stripe.paymentIntents.retrieve(paymentIntentId, {

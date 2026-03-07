@@ -556,6 +556,15 @@ describe('Payment Flows', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.payment_status).toBe('paid');
     });
+
+    it('GET /stripe/checkout/sessions/:id returns 400 for invalid session id', async () => {
+      const res = await request(app)
+        .get('/stripe/checkout/sessions/not_a_session')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockCheckoutGet).not.toHaveBeenCalled();
+    });
   });
 
   // ────────────── Invoices ──────────────
@@ -603,12 +612,12 @@ describe('Payment Flows', () => {
 
     it('POST /stripe/invoices/:id/finalize finalizes invoice', async () => {
       mockInvoiceFinalize.mockResolvedValue({
-        id: 'inv_123',
+        id: 'in_123',
         status: 'open',
       });
 
       const res = await request(app)
-        .post('/stripe/invoices/inv_123/finalize')
+        .post('/stripe/invoices/in_123/finalize')
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
@@ -617,12 +626,12 @@ describe('Payment Flows', () => {
 
     it('POST /stripe/invoices/:id/pay marks invoice paid', async () => {
       mockInvoicePay.mockResolvedValue({
-        id: 'inv_123',
+        id: 'in_123',
         status: 'paid',
       });
 
       const res = await request(app)
-        .post('/stripe/invoices/inv_123/pay')
+        .post('/stripe/invoices/in_123/pay')
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
@@ -631,16 +640,43 @@ describe('Payment Flows', () => {
 
     it('POST /stripe/invoices/:id/void voids invoice', async () => {
       mockInvoiceVoid.mockResolvedValue({
-        id: 'inv_123',
+        id: 'in_123',
         status: 'void',
       });
 
       const res = await request(app)
-        .post('/stripe/invoices/inv_123/void')
+        .post('/stripe/invoices/in_123/void')
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe('void');
+    });
+
+    it('POST /stripe/invoices/:id/finalize returns 400 for invalid invoice id', async () => {
+      const res = await request(app)
+        .post('/stripe/invoices/bad_id/finalize')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockInvoiceFinalize).not.toHaveBeenCalled();
+    });
+
+    it('POST /stripe/invoices/:id/pay returns 400 for invalid invoice id', async () => {
+      const res = await request(app)
+        .post('/stripe/invoices/bad_id/pay')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockInvoicePay).not.toHaveBeenCalled();
+    });
+
+    it('POST /stripe/invoices/:id/void returns 400 for invalid invoice id', async () => {
+      const res = await request(app)
+        .post('/stripe/invoices/bad_id/void')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockInvoiceVoid).not.toHaveBeenCalled();
     });
   });
 
@@ -837,6 +873,15 @@ describe('Payment Flows', () => {
         .set('Authorization', 'Bearer token');
 
       expect(res.status).toBe(403);
+    });
+
+    it('GET /stripe/payment-history/:id returns 400 for invalid payment intent id', async () => {
+      const res = await request(app)
+        .get('/stripe/payment-history/not_a_pi')
+        .set('Authorization', 'Bearer token');
+
+      expect(res.status).toBe(400);
+      expect(mockPaymentIntentsRetrieve).not.toHaveBeenCalled();
     });
   });
 });
