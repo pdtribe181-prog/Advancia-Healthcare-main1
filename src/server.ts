@@ -93,6 +93,22 @@ const contactFormSchema = z.object({
   category: z.string().max(50).optional(),
   message: z.string().max(5000),
 });
+
+const kycSubmitSchema = z.object({
+  personalInfo: z.object({
+    firstName: z.string().max(100),
+    lastName: z.string().max(100),
+    dateOfBirth: z.string().max(20),
+    nationality: z.string().max(10),
+    address: z.string().max(500),
+    city: z.string().max(100),
+    state: z.string().max(100),
+    postalCode: z.string().max(20),
+    country: z.string().max(10),
+  }),
+  docType: z.enum(['passport', 'drivers_license', 'national_id']),
+  documentUrls: z.array(z.string().url().max(1000)).min(1).max(5),
+});
 import {
   requestId,
   requestLogger,
@@ -566,6 +582,27 @@ apiRouter.post(
     });
     logger.info('Contact form submitted', { email, category });
     res.status(201).json({ success: true, message: 'Message received' });
+  })
+);
+
+// ─── KYC Submission ────────────────────────────────────────────────────────
+apiRouter.post(
+  '/kyc/submit',
+  authenticateToken,
+  apiLimiter,
+  validateBody(kycSubmitSchema),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { user } = req as AuthenticatedRequest;
+    const { personalInfo, docType, documentUrls } = req.body;
+    const admin = createServiceClient();
+    await admin.from('compliance_logs').insert({
+      user_id: user.id,
+      action_type: 'kyc_submission',
+      resource_type: 'identity_verification',
+      details: { personalInfo, docType, documentUrls, status: 'pending' },
+    });
+    logger.info('KYC submitted', { userId: user.id, docType });
+    res.status(201).json({ success: true, message: 'KYC submitted for review' });
   })
 );
 

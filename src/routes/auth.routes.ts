@@ -788,6 +788,40 @@ const emailSchema = z.object({
   email: z.string().email(),
 });
 
+const verifyEmailSchema = z.object({
+  token: z.string().min(1),
+  email: z.string().email().optional(),
+  type: z.enum(['signup', 'email']).default('signup'),
+});
+
+/**
+ * Verify email with OTP token
+ */
+router.post(
+  '/verify-email',
+  authLimiter,
+  validateBody(verifyEmailSchema),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { token, email, type } = req.body;
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: token,
+      type: type === 'email' ? 'email' : 'signup',
+      ...(email ? { email } : {}),
+    });
+
+    if (error) {
+      throw AppError.badRequest(error.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully',
+      data: { user: data.user },
+    });
+  })
+);
+
 /**
  * Resend email confirmation
  */

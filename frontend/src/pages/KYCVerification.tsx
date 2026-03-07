@@ -1,5 +1,6 @@
 import React, { useState, CSSProperties, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 import '../styles.css';
 
 type Step = 1 | 2 | 3 | 4;
@@ -335,11 +336,24 @@ export const KYCVerification: React.FC = () => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Upload documents
+      const formData = new FormData();
+      if (documents.front) formData.append('files', documents.front);
+      if (documents.back) formData.append('files', documents.back);
+      if (documents.selfie) formData.append('files', documents.selfie);
+
+      const uploadRes = await api.post('/upload/document', formData) as { data: { files: { url: string }[] } };
+      const documentUrls = uploadRes.data.files.map((f: { url: string }) => f.url);
+
+      // Submit KYC data
+      await api.post('/kyc/submit', {
+        personalInfo,
+        docType,
+        documentUrls,
+      });
       setStep(4);
     } catch (error) {
-      console.error('KYC submission failed:', error);
+      alert(error instanceof Error ? error.message : 'KYC submission failed. Please try again.');
     } finally {
       setLoading(false);
     }

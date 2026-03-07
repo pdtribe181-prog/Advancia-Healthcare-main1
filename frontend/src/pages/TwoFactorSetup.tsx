@@ -1,7 +1,8 @@
-import React, { useState, CSSProperties } from 'react';
+import React, { useState, useEffect, CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../providers/AuthProvider';
+import { api } from '../services/api';
 import '../styles.css';
 
 const pageStyle: CSSProperties = {
@@ -262,9 +263,13 @@ export const TwoFactorSetup: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
-  const [secret] = useState('JBSWY3DPEHPK3PXP'); // In production, generate new secret via API
+  const [secret, setSecret] = useState('');
+  const [factorId, setFactorId] = useState('');
+  const [otpAuthUrl, setOtpAuthUrl] = useState('');
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState('');
   const [copied, setCopied] = useState(false);
   const [backupCodes] = useState([
     'A1B2-C3D4',
@@ -277,7 +282,23 @@ export const TwoFactorSetup: React.FC = () => {
     'C9D0-E1F2',
   ]);
 
-  const otpAuthUrl = `otpauth://totp/Advancia:${user?.email || 'user@example.com'}?secret=${secret}&issuer=Advancia`;
+  useEffect(() => {
+    if (step === 2 && !factorId) {
+      setEnrolling(true);
+      setEnrollError('');
+      api.post('/auth/mfa/enroll', { factorType: 'totp' })
+        .then((res) => {
+          const data = (res as { data: { id: string; totp: { secret: string; uri: string } } }).data;
+          setFactorId(data.id);
+          setSecret(data.totp.secret);
+          setOtpAuthUrl(data.totp.uri);
+        })
+        .catch(() => {
+          setEnrollError('Failed to set up 2FA. Please try again.');
+        })
+        .finally(() => setEnrolling(false));
+    }
+  }, [step, factorId]);
 
   const copySecret = async () => {
     try {
@@ -320,13 +341,11 @@ export const TwoFactorSetup: React.FC = () => {
 
   const verifyCode = async () => {
     const fullCode = code.join('');
-    if (fullCode.length !== 6) return;
+    if (fullCode.length !== 6 || !factorId) return;
 
     setLoading(true);
     try {
-      // Simulate API verification
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // In production: await apiService.post('/auth/2fa/verify', { code: fullCode, secret });
+      await api.post('/auth/mfa/verify', { factorId, code: fullCode });
       setStep(4);
     } catch {
       alert('Invalid code. Please try again.');
@@ -439,9 +458,13 @@ If you lose access to your authenticator app, you can use one of these codes to 
             <div style={sectionStyle}>
               <p style={instructionStyle}>Open your authenticator app and scan this QR code:</p>
 
-              <div style={qrContainerStyle}>
-                <QRCodeDisplay data={otpAuthUrl} />
-              </div>
+              {enrolling && <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>Setting up...</p>}
+              {enrollError && <p style={{ textAlign: 'center', color: '#ef4444' }}>{enrollError}</p>}
+              {otpAuthUrl && (
+                <div style={qrContainerStyle}>
+                  <QRCodeDisplay data={otpAuthUrl} />
+                </div>
+              )}
 
               <p style={{ ...instructionStyle, textAlign: 'center', marginBottom: '12px' }}>
                 Can't scan? Enter this code manually:

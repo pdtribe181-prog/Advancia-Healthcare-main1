@@ -1,6 +1,7 @@
 import React, { useState, useEffect, CSSProperties } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
+import { api } from '../services/api';
 import '../styles.css';
 
 const pageStyle: CSSProperties = {
@@ -168,12 +169,10 @@ export const EmailVerification: React.FC = () => {
     }
   }, [resendTimer]);
 
-  const verifyWithToken = async (_t: string) => {
+  const verifyWithToken = async (t: string) => {
     setState('verifying');
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      // In production: await apiService.post('/auth/verify-email', { token: _t });
+      await api.post('/auth/verify-email', { token: t, type: 'signup' });
       setState('success');
     } catch {
       setState('error');
@@ -186,9 +185,7 @@ export const EmailVerification: React.FC = () => {
 
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // In production: await apiService.post('/auth/verify-email', { code: fullCode, email });
+      await api.post('/auth/verify-email', { token: fullCode, email, type: 'email' });
       setState('success');
     } catch {
       setState('error');
@@ -236,13 +233,11 @@ export const EmailVerification: React.FC = () => {
     if (resendTimer > 0) return;
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In production: await apiService.post('/auth/resend-verification', { email });
+      await api.post('/auth/email/resend-confirmation', { email });
       setResendTimer(60);
       alert('Verification email sent!');
     } catch (error) {
-      console.error('Failed to resend email:', error);
+      alert('Failed to resend email. Please try again.');
     }
   };
 
