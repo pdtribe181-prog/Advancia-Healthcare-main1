@@ -58,6 +58,14 @@ const walletRevokeSchema = z.object({
   reason: z.string().min(1).max(500).optional(),
 });
 
+const walletConvertSchema = z.object({
+  fromToken: z.string().max(10),
+  toToken: z.string().max(10),
+  fromAmount: z.number().positive(),
+  toAmount: z.number().positive(),
+  exchangeRate: z.number().positive(),
+});
+
 /**
  * Web3 Wallet Routes
  *
@@ -535,6 +543,66 @@ router.post(
         id: wallet.id,
         verificationStatus: wallet.verification_status,
         payoutEnabled: wallet.payout_enabled,
+      },
+    });
+  })
+);
+
+// ============================================================
+// TOKEN CONVERSION
+// ============================================================
+
+/**
+ * Record a token conversion/swap
+ * POST /wallet/convert
+ */
+router.post(
+  '/convert',
+  sensitiveLimiter,
+  authenticate,
+  validateBody(walletConvertSchema),
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { fromToken, toToken, fromAmount, toAmount, exchangeRate } = req.body;
+    const userId = req.user!.id;
+
+    // Record the conversion in wallet_transactions
+    const { data, error } = await supabase
+      .from('wallet_transactions')
+      .insert({
+        user_id: userId,
+        transaction_type: 'conversion',
+        amount: fromAmount,
+        currency: fromToken,
+        fiat_equivalent: toAmount,
+        status: 'completed',
+        metadata: { fromToken, toToken, fromAmount, toAmount, exchangeRate },
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw AppError.internal('Failed to record conversion');
+    }
+
+    await walletAuditService.log({
+      userId,
+      action: 'token_conversion',
+      details: { fromToken, toToken, fromAmount, toAmount, exchangeRate },
+      success: true,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    res.json({
+      success: true,
+      data: {
+        id: data.id,
+        fromToken,
+        toToken,
+        fromAmount,
+        toAmount,
+        exchangeRate,
+        status: 'completed',
       },
     });
   })

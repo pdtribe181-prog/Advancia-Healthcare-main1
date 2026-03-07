@@ -276,8 +276,8 @@ export const Contact: React.FC = () => {
     try {
       await api.post('/contact', form);
       setSent(true);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to send message. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
     }

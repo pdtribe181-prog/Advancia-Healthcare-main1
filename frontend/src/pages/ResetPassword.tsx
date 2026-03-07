@@ -41,8 +41,8 @@ export function ResetPassword() {
       api.setToken(accessToken!);
       await api.put('/auth/password', { password });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to reset password. The link may have expired.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password. The link may have expired.');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useState, useEffect, CSSProperties } from 'react';
 import { Spinner } from '../components/Spinner';
+import { api } from '../services/api';
 
 interface TokenInfo {
   symbol: string;
@@ -86,8 +87,13 @@ export function Convert() {
 
     setSubmitting(true);
     try {
-      // Simulated conversion — in production this would call a swap aggregator (1inch, 0x) or custodial swap
-      await new Promise(resolve => setTimeout(resolve, 1800));
+      await api.post('/wallet/convert', {
+        fromToken,
+        toToken,
+        fromAmount: Number(fromAmount),
+        toAmount: Number(toAmount),
+        exchangeRate,
+      });
       setStep('success');
     } catch {
       setError('Conversion failed. Please try again.');

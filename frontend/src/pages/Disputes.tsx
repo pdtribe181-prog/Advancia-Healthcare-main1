@@ -338,7 +338,8 @@ export const Disputes: React.FC = () => {
     setFetchLoading(true);
     setFetchError(null);
     try {
-      const res = await api.get<{ success: boolean; data: any[] }>('/disputes');
+      const res = await api.get<{ success: boolean; data: Record<string, unknown>[] }>('/disputes');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped: Dispute[] = (res.data || []).map((d: any) => ({
         id: d.id,
         transactionId: d.transaction_id || d.transactionId || '',
@@ -353,8 +354,8 @@ export const Disputes: React.FC = () => {
         resolution: d.resolution_notes || d.resolution,
       }));
       setDisputes(mapped);
-    } catch (err: any) {
-      setFetchError(err.message || 'Failed to load disputes');
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to load disputes');
     } finally {
       setFetchLoading(false);
     }
@@ -414,8 +415,8 @@ export const Disputes: React.FC = () => {
       setDisputes([newD, ...disputes]);
       setShowModal(false);
       setNewDispute({ transactionId: '', type: 'refund', reason: '', description: '' });
-    } catch (error: any) {
-      console.error('Failed to submit dispute:', error);
+    } catch (error) {
+      setFetchError(error instanceof Error ? error.message : 'Failed to submit dispute');
     } finally {
       setLoading(false);
     }

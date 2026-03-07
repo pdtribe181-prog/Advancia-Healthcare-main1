@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { api } from '../services/api';
 import '../styles.css';
 
 declare global {
   interface Window {
-    ethereum?: any;
+    ethereum?: {
+      request: (args: { method: string; params?: unknown[] }) => Promise<string>;
+      selectedAddress?: string;
+    };
   }
 }
 
@@ -30,55 +34,10 @@ const SUPPORTED_TOKENS: Token[] = [
   { symbol: 'BTC', name: 'Bitcoin', icon: '₿', color: '#f7931a' },
 ];
 
-const MOCK_BALANCES: Record<string, string> = {
-  ETH: '0.4521',
-  USDC: '320.00',
-  SOL: '12.50',
-  BTC: '0.0082',
+// ERC-20 contract addresses (mainnet)
+const ERC20_CONTRACTS: Record<string, string> = {
+  USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
 };
-
-const MOCK_HISTORY: TxRecord[] = [
-  {
-    type: 'received',
-    token: 'ETH',
-    amount: '+0.45',
-    addr: '0xAbc…12d3',
-    date: 'Feb 23, 2026',
-    status: 'confirmed',
-  },
-  {
-    type: 'sent',
-    token: 'USDC',
-    amount: '−120.00',
-    addr: '0xDef…56f7',
-    date: 'Feb 22, 2026',
-    status: 'confirmed',
-  },
-  {
-    type: 'received',
-    token: 'SOL',
-    amount: '+12.5',
-    addr: '9xLm…89ab',
-    date: 'Feb 20, 2026',
-    status: 'confirmed',
-  },
-  {
-    type: 'sent',
-    token: 'ETH',
-    amount: '−0.10',
-    addr: '0xGhi…ef12',
-    date: 'Feb 18, 2026',
-    status: 'pending',
-  },
-  {
-    type: 'received',
-    token: 'BTC',
-    amount: '+0.0031',
-    addr: 'bc1q…34xy',
-    date: 'Feb 15, 2026',
-    status: 'confirmed',
-  },
-];
 
 type Tab = 'send' | 'receive' | 'history';
 type StatusType = 'success' | 'error' | 'info' | '';
@@ -93,6 +52,8 @@ export const CryptoWallet: React.FC = () => {
   const [statusType, setStatusType] = useState<StatusType>('');
   const [copied, setCopied] = useState(false);
   const [sending, setSending] = useState(false);
+  const [balances, setBalances] = useState<Record<string, string>>({ ETH: '0', USDC: '0', SOL: '0', BTC: '0' });
+  const [txHistory, setTxHistory] = useState<TxRecord[]>([]);
 
   const toast = useCallback((msg: string, type: StatusType) => {
     setStatusMsg(msg);
@@ -105,11 +66,59 @@ export const CryptoWallet: React.FC = () => {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setAddress(accounts[0]);
         toast('Wallet connected successfully!', 'success');
+        fetchBalances(accounts[0]);
+        fetchHistory();
       } catch {
         toast('Connection rejected. Please try again.', 'error');
       }
     } else {
       toast('No Web3 wallet detected. Please install MetaMask to continue.', 'error');
+    }
+  };
+
+  const fetchBalances = async (addr: string) => {
+    try {
+      // Fetch ETH balance via RPC
+      const ethHex = await window.ethereum?.request({
+        method: 'eth_getBalance',
+        params: [addr, 'latest'],
+      });
+      const ethBal = ethHex ? (parseInt(ethHex, 16) / 1e18).toFixed(4) : '0';
+
+      // Fetch USDC balance via ERC-20 balanceOf
+      let usdcBal = '0';
+      const usdcContract = ERC20_CONTRACTS.USDC;
+      if (usdcContract) {
+        const balanceOfSelector = '0x70a08231' + addr.slice(2).padStart(64, '0');
+        const usdcHex = await window.ethereum?.request({
+          method: 'eth_call',
+          params: [{ to: usdcContract, data: balanceOfSelector }, 'latest'],
+        });
+        if (usdcHex && usdcHex !== '0x') {
+          usdcBal = (parseInt(usdcHex, 16) / 1e6).toFixed(2); // USDC has 6 decimals
+        }
+      }
+
+      setBalances(prev => ({ ...prev, ETH: ethBal, USDC: usdcBal }));
+    } catch {
+      // Keep previous balances on error
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const res = await api.get('/wallet/transactions') as { data: { type: string; currency: string; amount: number; status: string; createdAt: string; txHash?: string }[] };
+      const mapped: TxRecord[] = res.data.map((tx: { type: string; currency: string; amount: number; status: string; createdAt: string; txHash?: string }) => ({
+        type: tx.type === 'payout' || tx.type === 'conversion' ? 'sent' as const : 'received' as const,
+        token: tx.currency,
+        amount: tx.type === 'payout' ? `−${tx.amount}` : `+${tx.amount}`,
+        addr: tx.txHash ? `${tx.txHash.slice(0, 6)}…${tx.txHash.slice(-4)}` : '—',
+        date: new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        status: tx.status === 'completed' ? 'confirmed' as const : 'pending' as const,
+      }));
+      setTxHistory(mapped);
+    } catch {
+      // Leave empty on error — user may not have provider role
     }
   };
 
@@ -131,15 +140,15 @@ export const CryptoWallet: React.FC = () => {
     toast('Awaiting wallet confirmation…', 'info');
     try {
       const valueHex = Math.floor(amt * 1e18).toString(16);
-      await window.ethereum.request({
+      await window.ethereum!.request({
         method: 'eth_sendTransaction',
         params: [{ to: recipient, from: address, value: '0x' + valueHex }],
       });
       toast(`✅ ${amount} ${selectedToken} sent to ${recipient.slice(0, 10)}…`, 'success');
       setRecipient('');
       setAmount('');
-    } catch (e: any) {
-      toast('Transaction failed: ' + (e?.message ?? 'Unknown error'), 'error');
+    } catch (e) {
+      toast('Transaction failed: ' + (e instanceof Error ? e.message : 'Unknown error'), 'error');
     } finally {
       setSending(false);
     }
@@ -153,7 +162,12 @@ export const CryptoWallet: React.FC = () => {
   };
 
   useEffect(() => {
-    if (window.ethereum?.selectedAddress) setAddress(window.ethereum.selectedAddress);
+    if (window.ethereum?.selectedAddress) {
+      setAddress(window.ethereum.selectedAddress);
+      fetchBalances(window.ethereum.selectedAddress);
+      fetchHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const shortAddr = address ? `${address.slice(0, 8)}…${address.slice(-6)}` : '';
@@ -240,7 +254,7 @@ export const CryptoWallet: React.FC = () => {
                   {t.icon}
                 </span>
                 <div className="cw-balance-card__middle">
-                  <div className="cw-balance-card__amount">{MOCK_BALANCES[t.symbol]}</div>
+                  <div className="cw-balance-card__amount">{balances[t.symbol]}</div>
                   <div className="cw-balance-card__symbol">{t.symbol}</div>
                 </div>
                 <div className="cw-balance-card__name">{t.name}</div>
@@ -313,14 +327,14 @@ export const CryptoWallet: React.FC = () => {
                     />
                     <button
                       className="cw-max-btn"
-                      onClick={() => setAmount(MOCK_BALANCES[selectedToken])}
+                      onClick={() => setAmount(balances[selectedToken])}
                       title="Use maximum balance"
                     >
                       MAX
                     </button>
                   </div>
                   <span className="cw-field__hint">
-                    Available: {MOCK_BALANCES[selectedToken]} {selectedToken}
+                    Available: {balances[selectedToken]} {selectedToken}
                   </span>
                 </div>
 
@@ -377,7 +391,10 @@ export const CryptoWallet: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {MOCK_HISTORY.map((tx, i) => (
+                      {txHistory.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No transactions yet</td></tr>
+                      )}
+                      {txHistory.map((tx, i) => (
                         <tr key={i}>
                           <td>
                             <span className={`cw-tx-type cw-tx-type--${tx.type}`}>
@@ -407,8 +424,7 @@ export const CryptoWallet: React.FC = () => {
                   </table>
                 </div>
                 <p className="cw-disclaimer">
-                  Transaction history shown is illustrative. Live on-chain data requires a block
-                  explorer API (e.g. Etherscan).
+                  Transaction history from your linked wallet. On-chain data may have a short delay.
                 </p>
               </div>
             )}

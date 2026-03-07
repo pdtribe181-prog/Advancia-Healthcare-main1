@@ -320,10 +320,11 @@ export const AuditLog: React.FC = () => {
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (filters.category) params.set('action', filters.category);
-      const res = await api.get<{ data: any[]; pagination: { total: number; totalPages: number } }>(
+      const res = await api.get<{ data: Record<string, unknown>[]; pagination: { total: number; totalPages: number } }>(
         `/admin/audit-log?${params.toString()}`
       );
       // Map backend compliance_logs to AuditLogEntry shape
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped: AuditLogEntry[] = (res.data || []).map((log: any) => ({
         id: log.id,
         timestamp: log.created_at || log.timestamp,
@@ -346,8 +347,8 @@ export const AuditLog: React.FC = () => {
       setLogs(mapped);
       setTotal(res.pagination?.total ?? mapped.length);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load audit logs');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load audit logs');
     } finally {
       setLoading(false);
     }
