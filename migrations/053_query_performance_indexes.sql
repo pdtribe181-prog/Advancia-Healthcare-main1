@@ -12,10 +12,9 @@ BEGIN;
 -- 1. HIGH-PRIORITY SINGLE-COLUMN INDEXES
 -- ============================================================
 
--- transactions.status (distinct from payment_status which IS indexed)
--- Used in admin dashboard revenue queries
-CREATE INDEX IF NOT EXISTS idx_transactions_status
-  ON transactions (status);
+-- transactions.payment_status — used in admin dashboard revenue queries
+CREATE INDEX IF NOT EXISTS idx_transactions_payment_status
+  ON transactions (payment_status);
 
 -- user_profiles.email — auth hot path (login, password reset, lookup)
 CREATE INDEX IF NOT EXISTS idx_user_profiles_email
@@ -93,9 +92,9 @@ CREATE INDEX IF NOT EXISTS idx_appointments_slot_check
 CREATE INDEX IF NOT EXISTS idx_appointments_provider_schedule
   ON appointments (provider_id, status, appointment_date);
 
--- Admin revenue analytics: transaction status + date range
+-- Admin revenue analytics: transaction payment_status + date range
 CREATE INDEX IF NOT EXISTS idx_transactions_status_created
-  ON transactions (status, created_at DESC);
+  ON transactions (payment_status, created_at DESC);
 
 -- Provider transaction history: provider + recent first
 CREATE INDEX IF NOT EXISTS idx_transactions_provider_created

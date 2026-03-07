@@ -64,13 +64,16 @@ async function main() {
       continue;
     }
     try {
+      await client.query('BEGIN');
       await client.query(sql);
+      await client.query('COMMIT');
       console.log(`  ✓ ${file}`);
       run++;
     } catch (err: any) {
+      await client.query('ROLLBACK').catch(() => {});
       console.error(`  ✗ ${file}: ${err.message}`);
       failed++;
-      // Continue by default; set exit 1 at end if any failed
+      // Continue to next migration after rolling back the failed one
     }
   }
 

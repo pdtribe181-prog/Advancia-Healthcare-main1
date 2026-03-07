@@ -65,7 +65,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Access denied: admin role required';
   END IF;
-  
+
   RETURN QUERY SELECT * FROM public.daily_transaction_summary;
 END;
 $$;
@@ -111,7 +111,7 @@ CREATE POLICY "admin_select_access_audit_logs" ON public.access_audit_logs
   FOR SELECT TO authenticated
   USING (public.is_admin());
 
--- Note: For INSERT, we allow but require the user_id to match 
+-- Note: For INSERT, we allow but require the user_id to match
 -- This ensures only backend with service_role or proper auth can insert
 CREATE POLICY "service_insert_access_audit_logs" ON public.access_audit_logs
   FOR INSERT TO authenticated
@@ -176,7 +176,7 @@ CREATE POLICY "service_insert_email_history_secured" ON public.email_history
   FOR INSERT TO authenticated
   WITH CHECK (
     -- Allow if user is admin or if recipient matches user
-    public.is_admin() OR recipient_email IN (
+    public.is_admin() OR recipient IN (
       SELECT email FROM public.user_profiles WHERE id = auth.uid()
     )
   );
@@ -571,7 +571,7 @@ BEGIN
   SELECT COUNT(*) INTO policy_count
   FROM pg_policies
   WHERE schemaname = 'public';
-  
+
   RAISE NOTICE 'Migration 020 completed!';
   RAISE NOTICE 'Total RLS policies in public schema: %', policy_count;
   RAISE NOTICE '';
