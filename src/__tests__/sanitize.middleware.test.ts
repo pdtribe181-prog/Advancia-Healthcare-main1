@@ -2,7 +2,7 @@
  * Sanitize Middleware Tests
  * Covers: stripHtmlTags, sanitizeValue, sanitizeBody
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect } from '@jest/globals';
 import { stripHtmlTags, sanitizeBody } from '../middleware/sanitize.middleware.js';
 
 describe('sanitize.middleware', () => {

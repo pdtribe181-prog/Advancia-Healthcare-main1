@@ -2,7 +2,7 @@
  * Unit tests for environment configuration
  */
 
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, afterAll } from '@jest/globals';
 import { z } from 'zod';
 
 describe('Environment Configuration', () => {

@@ -2,7 +2,7 @@
  * Unit tests for security middleware
  */
 
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, afterAll } from '@jest/globals';
 import { Express, Request, Response, NextFunction } from 'express';
 
 // Mock helmet

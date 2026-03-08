@@ -4,7 +4,7 @@
  *         /admin/providers, /admin/webhooks, /admin/audit-log, /admin/analytics/revenue,
  *         /admin/system/health
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock supabase
 const mockSelect = jest.fn<any>();

@@ -3,7 +3,7 @@
  * Covers: processWebhook, all event handlers (payment_intent, charge, dispute,
  *         customer, subscription, invoice, connect, transfer, payout, checkout)
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import type Stripe from 'stripe';
 
 // Supabase mock

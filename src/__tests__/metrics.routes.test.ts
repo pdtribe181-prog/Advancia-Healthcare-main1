@@ -2,7 +2,7 @@
  * Metrics Routes Tests
  * Covers: GET / (prometheus), GET /json (admin), POST /persist (admin)
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
 const mockGetPrometheusMetrics = jest
   .fn<any>()

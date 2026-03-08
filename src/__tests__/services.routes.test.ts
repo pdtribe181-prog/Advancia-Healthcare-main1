@@ -5,7 +5,7 @@
  *         POST /services/:id/activate, GET /services/admin/stats,
  *         POST /services/admin/refresh
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
 // Mock auth
 let mockAuthUser: any = { id: 'user-admin', role: 'admin' };

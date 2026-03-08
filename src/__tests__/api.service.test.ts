@@ -3,7 +3,7 @@
  * Covers all CRUD service wrappers: userProfiles, patients, providers,
  * appointments, transactions, invoices, notifications, apiKeys, webhooks, disputes
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 function createChain(finalResult: any) {
   const c: any = {};

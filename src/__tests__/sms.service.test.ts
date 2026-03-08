@@ -30,6 +30,25 @@ jest.unstable_mockModule('../middleware/logging.middleware.js', () => ({
   },
 }));
 
+// Mutable env overrides – tests mutate this to control getEnv() return value
+const mockEnvValues: Record<string, string | undefined> = {};
+
+jest.unstable_mockModule('../config/env.js', () => ({
+  getEnv: () => ({
+    // base test env (matches jest.setup.ts)
+    NODE_ENV: 'test',
+    SUPABASE_URL: 'https://test.supabase.co',
+    SUPABASE_ANON_KEY: 'test-anon-key',
+    SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
+    STRIPE_SECRET_KEY: 'sk_test_placeholder00000000000000',
+    STRIPE_PUBLISHABLE_KEY: 'pk_test_placeholder00000000000000',
+    STRIPE_WEBHOOK_SECRET: 'whsec_test_placeholder',
+    FRONTEND_URL: 'http://localhost:5173',
+    ...mockEnvValues,
+  }),
+  validateEnv: () => ({}),
+}));
+
 // Custom CircuitBreakerError class for the mock
 class MockCircuitBreakerError extends Error {
   constructor(service: string) {
@@ -65,28 +84,25 @@ const {
 // ── tests ──
 
 describe('sms.service', () => {
-  const ORIGINAL_ENV = process.env;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env = { ...ORIGINAL_ENV };
-  });
-
-  afterAll(() => {
-    process.env = ORIGINAL_ENV;
+    // Reset env overrides
+    mockEnvValues.TWILIO_ACCOUNT_SID = undefined;
+    mockEnvValues.TWILIO_AUTH_TOKEN = undefined;
+    mockEnvValues.TWILIO_PHONE_NUMBER = undefined;
   });
 
   // Helper to configure twilio env vars
   function setTwilioEnv() {
-    process.env.TWILIO_ACCOUNT_SID = 'AC_test_sid';
-    process.env.TWILIO_AUTH_TOKEN = 'test_auth_token';
-    process.env.TWILIO_PHONE_NUMBER = '+15551234567';
+    mockEnvValues.TWILIO_ACCOUNT_SID = 'AC_test_sid';
+    mockEnvValues.TWILIO_AUTH_TOKEN = 'test_auth_token';
+    mockEnvValues.TWILIO_PHONE_NUMBER = '+15551234567';
   }
 
   function clearTwilioEnv() {
-    delete process.env.TWILIO_ACCOUNT_SID;
-    delete process.env.TWILIO_AUTH_TOKEN;
-    delete process.env.TWILIO_PHONE_NUMBER;
+    mockEnvValues.TWILIO_ACCOUNT_SID = undefined;
+    mockEnvValues.TWILIO_AUTH_TOKEN = undefined;
+    mockEnvValues.TWILIO_PHONE_NUMBER = undefined;
   }
 
   // ────────────────────── isSMSConfigured ──────────────────────

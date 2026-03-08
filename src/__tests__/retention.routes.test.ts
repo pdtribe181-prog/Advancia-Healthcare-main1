@@ -2,7 +2,7 @@
  * Retention Routes Tests
  * Covers: GET /retention/policies, POST /retention/enforce, GET /retention/history
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, afterEach } from '@jest/globals';
 
 jest.unstable_mockModule('../lib/supabase.js', () => ({
   supabase: { from: jest.fn<any>() },

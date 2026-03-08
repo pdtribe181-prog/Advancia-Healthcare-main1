@@ -4,7 +4,7 @@
  *   resetPassword, updatePassword, onAuthStateChange, signInWithProvider,
  *   phone auth, MFA, reauthenticate, resendEmailConfirmation, updateEmail
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Build comprehensive Supabase auth mock
 const mockSignUp = jest.fn<any>();
@@ -89,15 +89,24 @@ describe('Auth Service', () => {
       const chain = createChain({ data: null, error: null });
       mockFrom.mockReturnValue(chain);
 
-      const result = await authService.signUp('test@example.com', 'password123', 'Test User', 'patient');
+      const result = await authService.signUp(
+        'test@example.com',
+        'password123',
+        'Test User',
+        'patient'
+      );
       expect(result.user).toEqual(user);
-      expect(mockSignUp).toHaveBeenCalledWith(expect.objectContaining({ email: 'test@example.com', password: 'password123' }));
+      expect(mockSignUp).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'test@example.com', password: 'password123' })
+      );
       expect(mockFrom).toHaveBeenCalledWith('user_profiles');
     });
 
     it('throws on auth error', async () => {
       mockSignUp.mockResolvedValue({ data: { user: null }, error: new Error('Signup failed') });
-      await expect(authService.signUp('bad@test.com', 'pw', 'Name')).rejects.toThrow('Signup failed');
+      await expect(authService.signUp('bad@test.com', 'pw', 'Name')).rejects.toThrow(
+        'Signup failed'
+      );
     });
 
     it('throws on profile creation error', async () => {
@@ -106,7 +115,9 @@ describe('Auth Service', () => {
       const chain = createChain({ data: null, error: new Error('Profile error') });
       mockFrom.mockReturnValue(chain);
 
-      await expect(authService.signUp('test2@example.com', 'pw', 'Name')).rejects.toThrow('Profile error');
+      await expect(authService.signUp('test2@example.com', 'pw', 'Name')).rejects.toThrow(
+        'Profile error'
+      );
     });
 
     it('defaults role to patient', async () => {
@@ -193,7 +204,10 @@ describe('Auth Service', () => {
       mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
       const result = await authService.resetPassword('test@example.com');
       expect(result).toBeDefined();
-      expect(mockResetPasswordForEmail).toHaveBeenCalledWith('test@example.com', expect.any(Object));
+      expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.any(Object)
+      );
     });
 
     it('throws on error', async () => {
@@ -256,7 +270,9 @@ describe('Auth Service', () => {
 
       const result = await authService.signUpWithPhone('+1234567890', 'Test User');
       expect(result).toEqual(data);
-      expect(mockSignInWithOtp).toHaveBeenCalledWith(expect.objectContaining({ phone: '+1234567890' }));
+      expect(mockSignInWithOtp).toHaveBeenCalledWith(
+        expect.objectContaining({ phone: '+1234567890' })
+      );
     });
 
     it('throws on error', async () => {
@@ -283,7 +299,11 @@ describe('Auth Service', () => {
 
   describe('verifyPhoneOtp', () => {
     it('verifies OTP and creates profile if needed', async () => {
-      const user = { id: 'u-ph-1', phone: '+123', user_metadata: { full_name: 'Phone User', role: 'patient' } };
+      const user = {
+        id: 'u-ph-1',
+        phone: '+123',
+        user_metadata: { full_name: 'Phone User', role: 'patient' },
+      };
       mockVerifyOtp.mockResolvedValue({ data: { user, session: {} }, error: null });
 
       // First call: select (no existing profile)
@@ -337,12 +357,19 @@ describe('Auth Service', () => {
   // ---- MFA ----
   describe('enrollMFA', () => {
     it('enrolls TOTP factor', async () => {
-      const data = { id: 'f-1', type: 'totp', totp: { qr_code: 'qr', secret: 'sec', uri: 'otpauth://' } };
+      const data = {
+        id: 'f-1',
+        type: 'totp',
+        totp: { qr_code: 'qr', secret: 'sec', uri: 'otpauth://' },
+      };
       mockMfaEnroll.mockResolvedValue({ data, error: null });
 
       const result = await authService.enrollMFA();
       expect(result).toEqual(data);
-      expect(mockMfaEnroll).toHaveBeenCalledWith({ factorType: 'totp', friendlyName: 'Authenticator App' });
+      expect(mockMfaEnroll).toHaveBeenCalledWith({
+        factorType: 'totp',
+        friendlyName: 'Authenticator App',
+      });
     });
 
     it('accepts custom friendly name', async () => {
@@ -367,7 +394,11 @@ describe('Auth Service', () => {
       const result = await authService.verifyMFA('f-1', '123456');
       expect(result).toEqual({ access_token: 'mfa-tok' });
       expect(mockMfaChallenge).toHaveBeenCalledWith({ factorId: 'f-1' });
-      expect(mockMfaVerify).toHaveBeenCalledWith({ factorId: 'f-1', challengeId: 'ch-1', code: '123456' });
+      expect(mockMfaVerify).toHaveBeenCalledWith({
+        factorId: 'f-1',
+        challengeId: 'ch-1',
+        code: '123456',
+      });
     });
 
     it('throws on challenge error', async () => {
@@ -431,7 +462,11 @@ describe('Auth Service', () => {
   describe('getMFAAssuranceLevel', () => {
     it('returns assurance level info', async () => {
       mockMfaGetAssuranceLevel.mockResolvedValue({
-        data: { currentLevel: 'aal1', nextLevel: 'aal2', currentAuthenticationMethods: [{ method: 'password' }] },
+        data: {
+          currentLevel: 'aal1',
+          nextLevel: 'aal2',
+          currentAuthenticationMethods: [{ method: 'password' }],
+        },
         error: null,
       });
 
@@ -444,7 +479,10 @@ describe('Auth Service', () => {
     });
 
     it('throws on error', async () => {
-      mockMfaGetAssuranceLevel.mockResolvedValue({ data: null, error: new Error('Assurance error') });
+      mockMfaGetAssuranceLevel.mockResolvedValue({
+        data: null,
+        error: new Error('Assurance error'),
+      });
       await expect(authService.getMFAAssuranceLevel()).rejects.toThrow('Assurance error');
     });
   });
@@ -508,7 +546,9 @@ describe('Auth Service', () => {
 
     it('throws on error', async () => {
       mockResend.mockResolvedValue({ data: null, error: new Error('Resend failed') });
-      await expect(authService.resendEmailConfirmation('bad@test.com')).rejects.toThrow('Resend failed');
+      await expect(authService.resendEmailConfirmation('bad@test.com')).rejects.toThrow(
+        'Resend failed'
+      );
     });
   });
 

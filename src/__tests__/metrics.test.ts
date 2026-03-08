@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock supabase before importing metrics service
 jest.unstable_mockModule('../lib/supabase.js', () => {

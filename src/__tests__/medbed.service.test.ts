@@ -3,7 +3,7 @@
  * Covers: getAllMedBeds, getMedBedById, checkAvailability, createBooking,
  *         getUserBookings, cancelBooking, and MedBedController endpoints
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 function createChain(finalResult: any) {
   const c: any = {};

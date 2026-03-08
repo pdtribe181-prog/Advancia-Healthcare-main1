@@ -4,7 +4,7 @@
  *         captureError, captureMessage, addBreadcrumb, setUser,
  *         startTransaction, userContextMiddleware, getMonitoringHealth, flushEvents
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock Sentry
 const mockInit = jest.fn<any>();

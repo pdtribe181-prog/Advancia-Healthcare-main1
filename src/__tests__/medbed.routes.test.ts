@@ -2,7 +2,7 @@
  * MedBed Routes & Controller Tests (via supertest)
  * Covers: GET /, POST /bookings, GET /bookings, POST /bookings/:id/cancel
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
 // Mock auth
 let mockAuthUser: any = { id: 'user-1', role: 'patient' };

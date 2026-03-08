@@ -4,7 +4,7 @@
  *   POST /appointments, POST /wallet-transactions, GET /health,
  *   verifyWebhook middleware, HMAC signature verification
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 import crypto from 'crypto';
 
 // Mock databaseWebhookService
@@ -56,15 +56,27 @@ jest.unstable_mockModule('../utils/errors.js', () => {
       super(message);
       this.statusCode = statusCode;
     }
-    static badRequest(msg: string) { return new AppError(msg, 400); }
-    static unauthorized(msg: string) { return new AppError(msg, 401); }
-    static notFound(msg: string) { return new AppError(msg, 404); }
-    static internal(msg: string) { return new AppError(msg, 500); }
+    static badRequest(msg: string) {
+      return new AppError(msg, 400);
+    }
+    static unauthorized(msg: string) {
+      return new AppError(msg, 401);
+    }
+    static notFound(msg: string) {
+      return new AppError(msg, 404);
+    }
+    static internal(msg: string) {
+      return new AppError(msg, 500);
+    }
   }
   return {
     AppError,
     asyncHandler: (fn: any) => async (req: any, res: any, next: any) => {
-      try { await fn(req, res, next); } catch (e) { next(e); }
+      try {
+        await fn(req, res, next);
+      } catch (e) {
+        next(e);
+      }
     },
   };
 });
@@ -110,7 +122,13 @@ describe('Database Webhook Routes', () => {
   // ---- Generic POST / ----
   describe('POST /webhooks (generic)', () => {
     it('routes transaction payload to handleTransaction', async () => {
-      const body = { table: 'transactions', type: 'INSERT', schema: 'public', record: { id: 'tx-1' }, old_record: null };
+      const body = {
+        table: 'transactions',
+        type: 'INSERT',
+        schema: 'public',
+        record: { id: 'tx-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks')
         .set('x-supabase-signature', sign(body))
@@ -121,7 +139,13 @@ describe('Database Webhook Routes', () => {
     });
 
     it('routes dispute payload to handleDispute', async () => {
-      const body = { table: 'disputes', type: 'INSERT', schema: 'public', record: { id: 'd-1' }, old_record: null };
+      const body = {
+        table: 'disputes',
+        type: 'INSERT',
+        schema: 'public',
+        record: { id: 'd-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks')
         .set('x-supabase-signature', sign(body))
@@ -131,7 +155,13 @@ describe('Database Webhook Routes', () => {
     });
 
     it('routes appointment payload to handleAppointment', async () => {
-      const body = { table: 'appointments', type: 'INSERT', schema: 'public', record: { id: 'a-1' }, old_record: null };
+      const body = {
+        table: 'appointments',
+        type: 'INSERT',
+        schema: 'public',
+        record: { id: 'a-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks')
         .set('x-supabase-signature', sign(body))
@@ -141,7 +171,13 @@ describe('Database Webhook Routes', () => {
     });
 
     it('routes wallet_transactions to handleWalletTransaction', async () => {
-      const body = { table: 'wallet_transactions', type: 'UPDATE', schema: 'public', record: { id: 'wt-1' }, old_record: null };
+      const body = {
+        table: 'wallet_transactions',
+        type: 'UPDATE',
+        schema: 'public',
+        record: { id: 'wt-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks')
         .set('x-supabase-signature', sign(body))
@@ -151,7 +187,13 @@ describe('Database Webhook Routes', () => {
     });
 
     it('handles unknown table gracefully', async () => {
-      const body = { table: 'unknown_table', type: 'INSERT', schema: 'public', record: { id: 'x' }, old_record: null };
+      const body = {
+        table: 'unknown_table',
+        type: 'INSERT',
+        schema: 'public',
+        record: { id: 'x' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks')
         .set('x-supabase-signature', sign(body))
@@ -172,7 +214,13 @@ describe('Database Webhook Routes', () => {
   // ---- Specific routes ----
   describe('POST /webhooks/transactions', () => {
     it('processes transaction webhook', async () => {
-      const body = { type: 'INSERT', table: 'transactions', schema: 'public', record: { id: 'tx-1' }, old_record: null };
+      const body = {
+        type: 'INSERT',
+        table: 'transactions',
+        schema: 'public',
+        record: { id: 'tx-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks/transactions')
         .set('x-supabase-signature', sign(body))
@@ -184,7 +232,13 @@ describe('Database Webhook Routes', () => {
 
   describe('POST /webhooks/disputes', () => {
     it('processes dispute webhook', async () => {
-      const body = { type: 'INSERT', table: 'disputes', schema: 'public', record: { id: 'd-1' }, old_record: null };
+      const body = {
+        type: 'INSERT',
+        table: 'disputes',
+        schema: 'public',
+        record: { id: 'd-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks/disputes')
         .set('x-supabase-signature', sign(body))
@@ -196,7 +250,13 @@ describe('Database Webhook Routes', () => {
 
   describe('POST /webhooks/appointments', () => {
     it('processes appointment webhook', async () => {
-      const body = { type: 'INSERT', table: 'appointments', schema: 'public', record: { id: 'a-1' }, old_record: null };
+      const body = {
+        type: 'INSERT',
+        table: 'appointments',
+        schema: 'public',
+        record: { id: 'a-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks/appointments')
         .set('x-supabase-signature', sign(body))
@@ -208,7 +268,13 @@ describe('Database Webhook Routes', () => {
 
   describe('POST /webhooks/wallet-transactions', () => {
     it('processes wallet transaction webhook', async () => {
-      const body = { type: 'UPDATE', table: 'wallet_transactions', schema: 'public', record: { id: 'wt-1' }, old_record: null };
+      const body = {
+        type: 'UPDATE',
+        table: 'wallet_transactions',
+        schema: 'public',
+        record: { id: 'wt-1' },
+        old_record: null,
+      };
       const res = await request(app)
         .post('/webhooks/wallet-transactions')
         .set('x-supabase-signature', sign(body))
@@ -221,7 +287,13 @@ describe('Database Webhook Routes', () => {
   // ---- Signature verification ----
   describe('Webhook signature verification', () => {
     it('rejects request with invalid signature', async () => {
-      const body = { table: 'transactions', type: 'INSERT', schema: 'public', record: { id: 'tx-1' }, old_record: null };
+      const body = {
+        table: 'transactions',
+        type: 'INSERT',
+        schema: 'public',
+        record: { id: 'tx-1' },
+        old_record: null,
+      };
       // Compute a valid-length but wrong signature (same length as real HMAC hex)
       const wrongSig = 'a'.repeat(64); // SHA-256 hex is 64 chars
       const res = await request(app)
@@ -232,10 +304,14 @@ describe('Database Webhook Routes', () => {
     });
 
     it('rejects request with missing signature', async () => {
-      const body = { table: 'transactions', type: 'INSERT', schema: 'public', record: { id: 'tx-1' }, old_record: null };
-      const res = await request(app)
-        .post('/webhooks')
-        .send(body);
+      const body = {
+        table: 'transactions',
+        type: 'INSERT',
+        schema: 'public',
+        record: { id: 'tx-1' },
+        old_record: null,
+      };
+      const res = await request(app).post('/webhooks').send(body);
       expect(res.status).toBe(401);
     });
   });

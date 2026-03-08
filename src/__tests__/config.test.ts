@@ -2,7 +2,7 @@
  * Config Tests
  * Covers: ai-knowledge-base.ts, production.config.ts
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, afterEach } from '@jest/globals';
 
 // Save original env
 const origEnv = { ...process.env };

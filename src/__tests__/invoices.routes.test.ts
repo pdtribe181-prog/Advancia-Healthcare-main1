@@ -2,7 +2,7 @@
  * Invoices Routes Tests
  * Covers: GET /invoices, GET /invoices/:id
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Each chain has its own isolated mock functions
 function createChain(finalResult: any = { data: [], error: null, count: 0 }): any {

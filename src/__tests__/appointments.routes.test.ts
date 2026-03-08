@@ -3,7 +3,7 @@
  * Covers: provider availability, list providers, book appointment,
  *         my-appointments, get single, cancel, reschedule
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Each chain returns its own isolated mock functions so sequential from() calls
 // don't stomp on each other's resolved values.
@@ -91,7 +91,9 @@ const app = express();
 app.use(express.json());
 app.use('/appointments', appointmentsRouter);
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 const UUID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 

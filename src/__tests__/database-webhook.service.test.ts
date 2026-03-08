@@ -3,7 +3,7 @@
  * Covers: handleTransaction, handleDispute, handleAppointment, handleWalletTransaction
  * and all notify* helper methods
  */
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock Supabase
 function createChain(finalResult: any) {

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { logger } from '../middleware/logging.middleware.js';
 
 describe('Logger', () => {
