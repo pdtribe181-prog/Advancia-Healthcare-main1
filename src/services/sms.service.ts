@@ -6,6 +6,7 @@
 import twilio from 'twilio';
 import { logger } from '../middleware/logging.middleware.js';
 import { twilioBreaker, CircuitBreakerError } from '../utils/circuit-breaker.js';
+import { getEnv } from '../config/env.js';
 
 // Lazy initialization for Twilio client
 let _twilioClient: twilio.Twilio | null = null;
@@ -17,9 +18,10 @@ interface TwilioConfig {
 }
 
 function getTwilioConfig(): TwilioConfig | null {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  const env = getEnv();
+  const accountSid = env.TWILIO_ACCOUNT_SID;
+  const authToken = env.TWILIO_AUTH_TOKEN;
+  const fromNumber = env.TWILIO_PHONE_NUMBER;
 
   if (accountSid && authToken && fromNumber) {
     return { accountSid, authToken, fromNumber };
@@ -132,7 +134,10 @@ export async function sendSMS({ to, template, data = {} }: SendSMSParams): Promi
         return { success: true, messageId: result.sid };
       } catch (cbError) {
         if (cbError instanceof CircuitBreakerError) {
-          logger.warn('SMS circuit breaker OPEN — skipping send', { template, to: maskPhoneNumber(to) });
+          logger.warn('SMS circuit breaker OPEN — skipping send', {
+            template,
+            to: maskPhoneNumber(to),
+          });
           return { success: false, error: 'Service temporarily unavailable' };
         }
         throw cbError;

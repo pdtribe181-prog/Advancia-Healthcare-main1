@@ -136,24 +136,31 @@ describe('MedBed Routes & Controller', () => {
   });
 
   describe('POST /medbeds/bookings/:id/cancel', () => {
+    const validId = '00000000-0000-4000-8000-000000000001';
+
     it('cancels a booking', async () => {
-      mockCancelBooking.mockResolvedValue({ id: 'b1', status: 'cancelled' });
-      const res = await request(app).post('/medbeds/bookings/b1/cancel');
+      mockCancelBooking.mockResolvedValue({ id: validId, status: 'cancelled' });
+      const res = await request(app).post(`/medbeds/bookings/${validId}/cancel`);
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ id: 'b1', status: 'cancelled' });
+      expect(res.body).toEqual({ id: validId, status: 'cancelled' });
     });
 
     it('returns 401 when userId is missing', async () => {
       mockAuthUser = {};
-      const res = await request(app).post('/medbeds/bookings/b1/cancel');
+      const res = await request(app).post(`/medbeds/bookings/${validId}/cancel`);
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
     });
 
     it('returns 500 when service throws', async () => {
       mockCancelBooking.mockRejectedValue(new Error('Not found'));
-      const res = await request(app).post('/medbeds/bookings/b999/cancel');
+      const res = await request(app).post(`/medbeds/bookings/${validId}/cancel`);
       expect(res.status).toBe(500);
+    });
+
+    it('returns 400 for invalid (non-UUID) booking id', async () => {
+      const res = await request(app).post('/medbeds/bookings/not-a-uuid/cancel');
+      expect(res.status).toBe(400);
     });
   });
 });

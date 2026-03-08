@@ -14,6 +14,7 @@ import {
 } from '../services/metrics.service.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
 import { asyncHandler } from '../utils/errors.js';
+import { getEnv } from '../config/env.js';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ const router = Router();
  * or require a Bearer token via the standard auth middleware.
  */
 const metricsAuth = (req: Request, res: Response, next: NextFunction): void => {
-  const allowedIps = (process.env.METRICS_ALLOWED_IPS || '')
+  const allowedIps = (getEnv().METRICS_ALLOWED_IPS ?? '')
     .split(',')
     .map((ip) => ip.trim())
     .filter(Boolean);

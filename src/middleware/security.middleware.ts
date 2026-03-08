@@ -1,6 +1,7 @@
 import helmet from 'helmet';
 import { Express, Request, Response, NextFunction } from 'express';
 import { logger } from './logging.middleware.js';
+import { getEnv } from '../config/env.js';
 import crypto from 'crypto';
 
 /**
@@ -72,19 +73,18 @@ const APP_ORIGINS = [
 export function getCorsConfig() {
   const allowedOrigins: string[] = [...APP_ORIGINS];
 
-  const envOrigins = (process.env.CORS_ORIGINS || '')
+  const env = getEnv();
+  const envOrigins = (env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  if (process.env.NODE_ENV === 'production') {
-    if (process.env.FRONTEND_URL) {
-      allowedOrigins.push(process.env.FRONTEND_URL);
-    }
+  if (env.NODE_ENV === 'production') {
+    allowedOrigins.push(env.FRONTEND_URL);
     allowedOrigins.push(...envOrigins);
   } else {
     allowedOrigins.push(
-      process.env.FRONTEND_URL || 'http://localhost:5173',
+      env.FRONTEND_URL,
       'http://localhost:5173',
       'http://127.0.0.1:5173',
       'http://localhost:5174',

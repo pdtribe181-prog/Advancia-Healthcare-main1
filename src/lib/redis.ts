@@ -11,6 +11,7 @@
 import { Redis as UpstashRedis } from '@upstash/redis';
 import IORedis from 'ioredis';
 import { logger } from '../middleware/logging.middleware.js';
+import { getEnv } from '../config/env.js';
 
 /** ioredis client type (avoids using namespace as type under strict TS) */
 type IORedisClient = InstanceType<typeof IORedis>;
@@ -44,8 +45,9 @@ let _activeKind: ClientKind | null = null;
 
 export function getUpstashRedis(): UpstashRedis {
   if (!_upstash) {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    const env = getEnv();
+    const url = env.UPSTASH_REDIS_REST_URL;
+    const token = env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!url || !token) {
       throw new Error(
@@ -73,7 +75,7 @@ export function getUpstashRedis(): UpstashRedis {
 
 export function getRedisClient(): IORedisClient {
   if (!_ioredis) {
-    _ioredis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    _ioredis = new IORedis(getEnv().REDIS_URL || 'redis://localhost:6379', {
       retryStrategy: (times) => Math.min(times * 200, 5000),
       maxRetriesPerRequest: 3,
       lazyConnect: true,
@@ -157,8 +159,10 @@ let _unified: RedisLike | null = null;
 export function getRedis(): RedisLike {
   if (_unified) return _unified;
 
+  const env = getEnv();
+
   // 1. Try Upstash
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
     try {
       const client = getUpstashRedis();
       _activeKind = 'upstash';
@@ -172,7 +176,7 @@ export function getRedis(): RedisLike {
   }
 
   // 2. Try ioredis
-  if (process.env.REDIS_URL) {
+  if (env.REDIS_URL) {
     try {
       const client = getRedisClient();
       _activeKind = 'ioredis';
