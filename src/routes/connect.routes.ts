@@ -9,7 +9,8 @@ import {
 } from '../middleware/auth.middleware.js';
 import { supabase } from '../lib/supabase.js';
 import { onboardingLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
-import { asyncHandler, AppError } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
+import { ERRORS } from '../constants/errors.js';
 import { getEnv } from '../config/env.js';
 
 const router = Router();
@@ -39,7 +40,7 @@ router.post(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const userProfile = req.userProfile!;
 
     // Get provider record
@@ -50,7 +51,7 @@ router.post(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     // Check if already has a Stripe account
@@ -72,7 +73,7 @@ router.post(
 
     // Create new Stripe Express account
     const account = await stripeServices.connect.createExpressAccount({
-      email: req.user!.email || '',
+      email: requireUser(req).email || '',
       providerId: provider.id,
       businessName: provider.business_name || userProfile.full_name || 'Healthcare Provider',
       country: 'US',
@@ -107,7 +108,7 @@ router.post(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data: provider } = await supabase
       .from('providers')
@@ -150,7 +151,7 @@ router.post(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const userProfile = req.userProfile!;
 
     // Check if provider already has a Stripe account
@@ -161,7 +162,7 @@ router.post(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     let stripeAccountId = provider.stripe_account_id;
@@ -169,7 +170,7 @@ router.post(
     // Create Stripe account if doesn't exist
     if (!stripeAccountId) {
       const account = await stripeServices.connect.createExpressAccount({
-        email: req.user!.email || '',
+        email: requireUser(req).email || '',
         providerId: provider.id,
         businessName: provider.business_name || userProfile.full_name || 'Healthcare Provider',
         country: 'US',
@@ -209,7 +210,7 @@ router.get(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data: provider } = await supabase
       .from('providers')
@@ -220,7 +221,7 @@ router.get(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     if (!provider.stripe_account_id) {
@@ -275,7 +276,7 @@ router.post(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data: provider } = await supabase
       .from('providers')
@@ -311,7 +312,7 @@ router.get(
   sensitiveLimiter,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data: provider } = await supabase
       .from('providers')
@@ -339,7 +340,7 @@ router.get(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data: provider } = await supabase
       .from('providers')
@@ -375,7 +376,7 @@ router.get(
   authenticateWithProfile,
   requireRole('provider', 'admin'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data: provider } = await supabase
       .from('providers')

@@ -1,4 +1,5 @@
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import type { User } from '@supabase/supabase-js';
 
 /**
  * Application error with status code
@@ -38,6 +39,16 @@ export class AppError extends Error {
   static internal(message = 'Internal server error'): AppError {
     return new AppError(message, 500, 'INTERNAL_ERROR');
   }
+}
+
+/**
+ * Runtime guard: extracts the authenticated user from the request or throws 401.
+ * Use instead of `req.user!` to avoid non-null assertions.
+ */
+export function requireUser(req: Request): User {
+  const user = (req as Request & { user?: User }).user;
+  if (!user) throw AppError.unauthorized();
+  return user;
 }
 
 /**

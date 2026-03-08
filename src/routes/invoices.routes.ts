@@ -8,7 +8,7 @@ import {
   uuidSchema,
   paginationSchema,
 } from '../middleware/validation.middleware.js';
-import { asyncHandler, AppError } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
 import { z } from 'zod';
 
 const router = Router();
@@ -32,7 +32,7 @@ router.get(
   authenticate,
   validateQuery(invoiceListQuerySchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const role = req.userProfile?.role || 'patient';
     const {
       page = 1,
@@ -135,7 +135,7 @@ router.get(
   authenticate,
   validateParams(idParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const role = req.userProfile?.role || 'patient';
     const { id } = req.params;
 

@@ -73,17 +73,28 @@ jest.unstable_mockModule('../services/service-catalog.service.js', () => ({
   },
 }));
 
-jest.unstable_mockModule('../utils/errors.js', () => ({
-  asyncHandler: (fn: any) => (req: any, res: any, next: any) =>
-    Promise.resolve(fn(req, res, next)).catch(next),
-  AppError: class AppError extends Error {
+jest.unstable_mockModule('../utils/errors.js', () => {
+  class AppError extends Error {
     statusCode: number;
-    constructor(message: string, statusCode: number) {
+    code?: string;
+    constructor(message: string, statusCode: number, code?: string) {
       super(message);
       this.statusCode = statusCode;
+      this.code = code;
     }
-  },
-}));
+    static notFound(resource = 'Resource') {
+      return new AppError(`${resource} not found`, 404, 'NOT_FOUND');
+    }
+    static badRequest(message: string) {
+      return new AppError(message, 400, 'BAD_REQUEST');
+    }
+  }
+  return {
+    AppError,
+    asyncHandler: (fn: any) => (req: any, res: any, next: any) =>
+      Promise.resolve(fn(req, res, next)).catch(next),
+  };
+});
 
 const { default: servicesRouter } = await import('../routes/services.routes.js');
 
@@ -97,6 +108,11 @@ beforeAll(() => {
   app = express();
   app.use(express.json());
   app.use('/services', servicesRouter);
+  // Error handler to convert AppError to proper HTTP responses
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    const status = err.statusCode || 500;
+    res.status(status).json({ success: false, error: err.message });
+  });
 });
 
 beforeEach(() => {

@@ -13,7 +13,7 @@ import {
   validateParams,
   validateBody,
 } from '../middleware/validation.middleware.js';
-import { asyncHandler, AppError } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { z } from 'zod';
 
@@ -451,7 +451,7 @@ router.patch(
         status,
         resolution_notes,
         resolved_at: status === 'resolved' ? new Date().toISOString() : null,
-        resolved_by: req.user!.id,
+        resolved_by: requireUser(req).id,
       })
       .eq('id', id)
       .select()
@@ -462,7 +462,7 @@ router.patch(
     // Log the action
     await supabase.from('compliance_logs').insert({
       action_type: 'dispute_resolution',
-      user_id: req.user!.id,
+      user_id: requireUser(req).id,
       resource_type: 'dispute',
       resource_id: id,
       details: { status, resolution_notes },

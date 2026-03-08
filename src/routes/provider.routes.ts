@@ -9,6 +9,7 @@ import {
   validateQuery,
 } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
+import { ERRORS } from '../constants/errors.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { cacheResponse, invalidateResource } from '../middleware/cache.middleware.js';
 import { z } from 'zod';
@@ -164,7 +165,7 @@ router.get(
       .single();
 
     if (error || !provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     res.json({ success: true, data: { provider } });
@@ -224,7 +225,7 @@ router.get(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     let query = supabase
@@ -308,7 +309,7 @@ router.get(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     const { data: appointment, error } = await supabase
@@ -324,7 +325,7 @@ router.get(
       .single();
 
     if (error || !appointment) {
-      throw AppError.notFound('Appointment not found');
+      throw AppError.notFound(ERRORS.APPOINTMENT);
     }
 
     // Get patient details
@@ -366,7 +367,7 @@ router.post(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     const { data: appointment, error } = await supabase
@@ -410,7 +411,7 @@ router.post(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     const { data: appointment, error } = await supabase
@@ -456,7 +457,7 @@ router.post(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     // Get appointment
@@ -468,7 +469,7 @@ router.post(
       .single();
 
     if (fetchError || !appointment) {
-      throw AppError.notFound('Appointment not found');
+      throw AppError.notFound(ERRORS.APPOINTMENT);
     }
 
     if (!['scheduled', 'confirmed'].includes(appointment.status)) {
@@ -531,7 +532,7 @@ router.get(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     // Calculate date range
@@ -613,7 +614,7 @@ router.get(
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     const { data: appointments, error } = await supabase

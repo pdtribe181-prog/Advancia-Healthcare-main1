@@ -7,7 +7,7 @@ import {
 import { createServiceClient } from '../lib/supabase.js';
 import { authLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { validateBody, signinSchema, signupSchema } from '../middleware/validation.middleware.js';
-import { asyncHandler, AppError, getErrorMessage } from '../utils/errors.js';
+import { asyncHandler, AppError, getErrorMessage, requireUser } from '../utils/errors.js';
 import { getEnv } from '../config/env.js';
 import { logSecurityEvent, logAndNotify, extractIPAddress } from '../services/security.service.js';
 import { generateCsrfToken } from '../middleware/csrf.middleware.js';
@@ -601,7 +601,7 @@ router.post(
   validateBody(mfaVerifySchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { factorId, code } = req.body;
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const ipAddress = extractIPAddress(req);
     const userAgent = req.headers['user-agent'];
 
@@ -719,7 +719,7 @@ router.delete(
   sensitiveLimiter,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const factorId = req.params.factorId as string;
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const ipAddress = extractIPAddress(req);
     const userAgent = req.headers['user-agent'];
 
@@ -920,7 +920,7 @@ router.put(
   validateBody(updatePasswordSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { password } = req.body;
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const ipAddress = extractIPAddress(req);
     const userAgent = req.headers['user-agent'];
 
@@ -971,7 +971,7 @@ router.get(
   authenticate,
   sensitiveLimiter,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const user = req.user!;
+    const user = requireUser(req);
 
     // Get user with identities from auth
     const { data: userData, error } = await supabase.auth.getUser();
@@ -1103,7 +1103,7 @@ router.post(
   validateBody(recoveryPhoneSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { phone } = req.body;
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     // Update user metadata with recovery phone
     const { data, error } = await supabase.auth.updateUser({
@@ -1261,7 +1261,7 @@ router.get(
   authenticate,
   sensitiveLimiter,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     const { data, error } = await supabase
       .from('user_profiles')
@@ -1300,7 +1300,7 @@ router.put(
   sensitiveLimiter,
   validateBody(securityPreferencesSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const preferences = req.body;
 
     const { error } = await supabase

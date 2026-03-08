@@ -20,6 +20,7 @@ import {
   paginationSchema,
 } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
+import { ERRORS } from '../constants/errors.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { z } from 'zod';
 
@@ -434,7 +435,7 @@ router.get(
       .single();
 
     if (error || !appointment) {
-      throw AppError.notFound('Appointment not found');
+      throw AppError.notFound(ERRORS.APPOINTMENT);
     }
 
     // Verify ownership
@@ -474,7 +475,7 @@ router.post(
       .single();
 
     if (fetchError || !appointment) {
-      throw AppError.notFound('Appointment not found');
+      throw AppError.notFound(ERRORS.APPOINTMENT);
     }
 
     // Verify ownership
@@ -577,7 +578,7 @@ router.post(
       .single();
 
     if (fetchError || !appointment) {
-      throw AppError.notFound('Appointment not found');
+      throw AppError.notFound(ERRORS.APPOINTMENT);
     }
 
     // Verify ownership

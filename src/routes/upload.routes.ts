@@ -24,7 +24,7 @@ import {
   handleMulterError,
   BUCKET_CONFIGS,
 } from '../middleware/upload.middleware.js';
-import { asyncHandler, AppError } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
 import { logger } from '../middleware/logging.middleware.js';
 
 const router = Router();
@@ -103,7 +103,7 @@ router.post(
     const file = req.file;
     if (!file) throw new AppError('No file provided', 400, 'NO_FILE');
 
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const result = await uploadToSupabase(file, 'avatars', userId);
 
     // Update user profile avatar_url
@@ -132,7 +132,7 @@ router.post(
     const files = req.files as Express.Multer.File[] | undefined;
     if (!files || files.length === 0) throw new AppError('No files provided', 400, 'NO_FILE');
 
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const results = await Promise.all(
       files.map((f) => uploadToSupabase(f, 'provider-documents', userId))
     );
@@ -156,7 +156,7 @@ router.post(
     const files = req.files as Express.Multer.File[] | undefined;
     if (!files || files.length === 0) throw new AppError('No files provided', 400, 'NO_FILE');
 
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const results = await Promise.all(
       files.map((f) => uploadToSupabase(f, 'medical-records', userId))
     );
@@ -191,7 +191,7 @@ router.post(
     const files = req.files as Express.Multer.File[] | undefined;
     if (!files || files.length === 0) throw new AppError('No files provided', 400, 'NO_FILE');
 
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const results = await Promise.all(
       files.map((f) => uploadToSupabase(f, 'invoice-attachments', userId))
     );
@@ -215,7 +215,7 @@ router.post(
     const files = req.files as Express.Multer.File[] | undefined;
     if (!files || files.length === 0) throw new AppError('No files provided', 400, 'NO_FILE');
 
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const results = await Promise.all(
       files.map((f) => uploadToSupabase(f, 'dispute-evidence', userId))
     );
@@ -242,7 +242,7 @@ router.post(
     const files = req.files as Express.Multer.File[] | undefined;
     if (!files || files.length === 0) throw new AppError('No files provided', 400, 'NO_FILE');
 
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const results = await Promise.all(
       files.map((f) => uploadToSupabase(f, 'message-attachments', userId))
     );

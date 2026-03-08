@@ -16,7 +16,8 @@ import {
 } from '../middleware/auth.middleware.js';
 import { supabase } from '../lib/supabase.js';
 import { apiLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
-import { asyncHandler, AppError } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
+import { ERRORS } from '../constants/errors.js';
 import { validateBody, validateParams } from '../middleware/validation.middleware.js';
 import { z } from 'zod';
 
@@ -125,7 +126,7 @@ router.post(
       .single();
 
     if (existing) {
-      if (existing.user_id === req.user!.id) {
+      if (existing.user_id === requireUser(req).id) {
         throw AppError.conflict('This wallet is already linked to your account');
       }
       throw AppError.conflict('This wallet is already linked to another account');
@@ -135,12 +136,12 @@ router.post(
     const challenge = await walletChallengeService.generate({
       walletAddress: normalizedAddress,
       network,
-      userId: req.user!.id,
+      userId: requireUser(req).id,
     });
 
     // Log attempt
     await walletAuditService.log({
-      userId: req.user!.id,
+      userId: requireUser(req).id,
       action: 'challenge_generated',
       details: { wallet_address: normalizedAddress, network },
       success: true,
@@ -182,7 +183,7 @@ router.post(
     const { data: provider } = await supabase
       .from('providers')
       .select('id')
-      .eq('user_id', req.user!.id)
+      .eq('user_id', requireUser(req).id)
       .single();
 
     if (provider) {
@@ -191,7 +192,7 @@ router.post(
 
     try {
       const wallet = await linkedWalletsService.link({
-        userId: req.user!.id,
+        userId: requireUser(req).id,
         providerId,
         walletAddress: normalizeAddress(walletAddress, network),
         network,
@@ -202,7 +203,7 @@ router.post(
 
       // Log success
       await walletAuditService.log({
-        userId: req.user!.id,
+        userId: requireUser(req).id,
         providerId,
         walletId: wallet.id,
         action: 'wallet_linked',
@@ -226,7 +227,7 @@ router.post(
     } catch (error) {
       // Log failure
       await walletAuditService.log({
-        userId: req.user!.id,
+        userId: requireUser(req).id,
         action: 'wallet_link_failed',
         details: { wallet_address: walletAddress, network, error: (error as Error).message },
         success: false,
@@ -253,7 +254,7 @@ router.get(
   apiLimiter,
   authenticate,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const wallets = await linkedWalletsService.getByUserId(req.user!.id);
+    const wallets = await linkedWalletsService.getByUserId(requireUser(req).id);
 
     res.json({
       success: true,
@@ -291,11 +292,11 @@ router.get(
     const { data: provider } = await supabase
       .from('providers')
       .select('id')
-      .eq('user_id', req.user!.id)
+      .eq('user_id', requireUser(req).id)
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
@@ -332,11 +333,11 @@ router.get(
     const { data: provider } = await supabase
       .from('providers')
       .select('id')
-      .eq('user_id', req.user!.id)
+      .eq('user_id', requireUser(req).id)
       .single();
 
     if (!provider) {
-      throw AppError.notFound('Provider profile not found');
+      throw AppError.notFound(ERRORS.PROVIDER_PROFILE);
     }
 
     const transaction = await walletTransactionsService.getById(transactionId);
@@ -362,7 +363,7 @@ router.get(
   authenticate,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
-    const wallet = await linkedWalletsService.getById(walletId, req.user!.id);
+    const wallet = await linkedWalletsService.getById(walletId, requireUser(req).id);
 
     if (!wallet) {
       throw AppError.notFound('Wallet not found');
@@ -416,7 +417,7 @@ router.patch(
       updates.payout_currency = payoutCurrency;
     }
 
-    const wallet = await linkedWalletsService.update(walletId, req.user!.id, updates);
+    const wallet = await linkedWalletsService.update(walletId, requireUser(req).id, updates);
 
     res.json({
       success: true,
@@ -446,10 +447,10 @@ router.post(
   validateParams(walletIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
-    const wallet = await linkedWalletsService.setPrimaryPayout(walletId, req.user!.id);
+    const wallet = await linkedWalletsService.setPrimaryPayout(walletId, requireUser(req).id);
 
     await walletAuditService.log({
-      userId: req.user!.id,
+      userId: requireUser(req).id,
       providerId: wallet.provider_id || undefined,
       walletId: wallet.id,
       action: 'set_primary_payout',
@@ -482,15 +483,15 @@ router.delete(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const walletId = req.params.id as string;
     // Get wallet before deleting for audit
-    const wallet = await linkedWalletsService.getById(walletId, req.user!.id);
+    const wallet = await linkedWalletsService.getById(walletId, requireUser(req).id);
     if (!wallet) {
       throw AppError.notFound('Wallet not found');
     }
 
-    await linkedWalletsService.unlink(walletId, req.user!.id);
+    await linkedWalletsService.unlink(walletId, requireUser(req).id);
 
     await walletAuditService.log({
-      userId: req.user!.id,
+      userId: requireUser(req).id,
       providerId: wallet.provider_id || undefined,
       action: 'wallet_unlinked',
       details: { wallet_address: wallet.wallet_address, network: wallet.blockchain_network },
@@ -528,10 +529,10 @@ router.post(
     const wallet = await linkedWalletsService.revoke(walletId);
 
     await walletAuditService.log({
-      userId: req.user!.id,
+      userId: requireUser(req).id,
       walletId: wallet.id,
       action: 'wallet_revoked_admin',
-      details: { reason, revoked_by: req.user!.id },
+      details: { reason, revoked_by: requireUser(req).id },
       success: true,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
@@ -563,7 +564,7 @@ router.post(
   validateBody(walletConvertSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { fromToken, toToken, fromAmount, toAmount, exchangeRate } = req.body;
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     // Record the conversion in wallet_transactions
     const { data, error } = await supabase

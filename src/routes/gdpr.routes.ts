@@ -17,7 +17,7 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware.js';
-import { asyncHandler, AppError } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { validateBody } from '../middleware/validation.middleware.js';
@@ -50,7 +50,7 @@ router.get(
   authenticate,
   sensitiveLimiter,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     logger.info('GDPR data export requested', { userId });
 
@@ -84,7 +84,7 @@ router.post(
   sensitiveLimiter,
   validateBody(gdprErasureSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const requesterId = req.user!.id;
+    const requesterId = requireUser(req).id;
     const { userId: targetUserId } = req.body;
 
     // Determine whose data to erase
@@ -131,7 +131,7 @@ router.get(
   '/consents',
   authenticate,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
 
     // Resolve patient ID
     const sb = createServiceClient();
@@ -156,7 +156,7 @@ router.put(
   authenticate,
   validateBody(gdprConsentSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const userId = requireUser(req).id;
     const { consentType, granted } = req.body;
 
     // Resolve patient ID

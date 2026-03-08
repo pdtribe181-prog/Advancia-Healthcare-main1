@@ -22,7 +22,8 @@
 
 import { Router, Request, Response } from 'express';
 import { supabase } from '../lib/supabase.js';
-import { asyncHandler } from '../utils/errors.js';
+import { asyncHandler, AppError } from '../utils/errors.js';
+import { ERRORS } from '../constants/errors.js';
 import { z } from 'zod';
 import {
   validateBody,
@@ -153,10 +154,7 @@ router.get(
     const service = serviceCatalog.getById(id);
 
     if (!service) {
-      return res.status(404).json({
-        success: false,
-        error: 'Service not found',
-      });
+      throw AppError.notFound(ERRORS.SERVICE);
     }
 
     res.json({
@@ -265,10 +263,7 @@ router.delete(
       .single();
 
     if (error || !data) {
-      return res.status(404).json({
-        success: false,
-        error: 'Service not found',
-      });
+      throw AppError.notFound(ERRORS.SERVICE);
     }
 
     // Update in-memory catalog
@@ -302,10 +297,7 @@ router.post(
       .single();
 
     if (error || !data) {
-      return res.status(404).json({
-        success: false,
-        error: 'Service not found',
-      });
+      throw AppError.notFound(ERRORS.SERVICE);
     }
 
     // Update in-memory catalog

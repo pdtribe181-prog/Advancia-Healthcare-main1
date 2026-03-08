@@ -133,11 +133,18 @@ jest.unstable_mockModule('../utils/errors.js', () => {
     static forbidden(message: string) {
       return new AppError(message, 403, 'FORBIDDEN');
     }
+    static unauthorized(message = 'Unauthorized') {
+      return new AppError(message, 401, 'UNAUTHORIZED');
+    }
   }
   return {
     AppError,
     asyncHandler: (fn: any) => (req: any, res: any, next: any) =>
       Promise.resolve(fn(req, res, next)).catch(next),
+    requireUser: (req: any) => {
+      if (!req.user) throw AppError.unauthorized('Unauthorized');
+      return req.user;
+    },
   };
 });
 
