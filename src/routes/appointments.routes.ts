@@ -21,6 +21,7 @@ import {
 } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
 import { ERRORS } from '../constants/errors.js';
+import { APPOINTMENT_STATUS, PAYMENT_STATUS } from '../constants/statuses.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { z } from 'zod';
 
@@ -260,7 +261,7 @@ router.post(
         duration_minutes: duration,
         reason,
         status: 'scheduled',
-        payment_status: 'pending',
+        payment_status: PAYMENT_STATUS.PENDING,
       })
       .select()
       .single();
@@ -490,7 +491,10 @@ router.post(
 
     // If payment was made, process refund
     let refunded = false;
-    if (appointment.payment_status === 'paid' && appointment.stripe_payment_intent_id) {
+    if (
+      appointment.payment_status === PAYMENT_STATUS.PAID &&
+      appointment.stripe_payment_intent_id
+    ) {
       try {
         await stripeServices.refunds.createFull(
           appointment.stripe_payment_intent_id,
@@ -509,7 +513,7 @@ router.post(
     const { data: updatedAppointment, error: updateError } = await supabase
       .from('appointments')
       .update({
-        status: 'cancelled',
+        status: APPOINTMENT_STATUS.CANCELLED,
         cancellation_reason: reason,
         cancelled_at: new Date().toISOString(),
       })

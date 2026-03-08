@@ -9,7 +9,7 @@ let mockAuthUser: any = { id: 'user-1', role: 'patient' };
 
 jest.unstable_mockModule('../middleware/auth.middleware.js', () => ({
   authenticate: (_req: any, _res: any, next: any) => {
-    if (mockAuthUser) _req.user = mockAuthUser;
+    _req.user = mockAuthUser ?? undefined;
     next();
   },
   AuthenticatedRequest: {},
@@ -37,6 +37,24 @@ jest.unstable_mockModule('../utils/errors.js', () => ({
     const msg = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ success: false, error: msg });
   }),
+  requireUser: (req: any) => {
+    if (!req.user) {
+      const err: any = new Error('Unauthorized');
+      err.statusCode = 401;
+      throw err;
+    }
+    return req.user;
+  },
+  AppError: class AppError extends Error {
+    statusCode: number;
+    constructor(message: string, statusCode = 500) {
+      super(message);
+      this.statusCode = statusCode;
+    }
+    static unauthorized(msg = 'Unauthorized') {
+      return new AppError(msg, 401);
+    }
+  },
 }));
 
 const { default: medbedRouter } = await import('../routes/medbed.routes.js');
@@ -51,6 +69,11 @@ beforeAll(() => {
   app = express();
   app.use(express.json());
   app.use('/medbeds', medbedRouter);
+  // Error handler for asyncHandler-thrown errors
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    const status = err.statusCode || 500;
+    res.status(status).json({ success: false, error: err.message });
+  });
 });
 
 beforeEach(() => {
@@ -92,7 +115,7 @@ describe('MedBed Routes & Controller', () => {
     });
 
     it('returns 401 when userId is missing', async () => {
-      mockAuthUser = {};
+      mockAuthUser = null;
       const res = await request(app).post('/medbeds/bookings').send({
         medBedId: 'mb1',
         startTime: '2025-02-01T10:00:00Z',
@@ -122,7 +145,7 @@ describe('MedBed Routes & Controller', () => {
     });
 
     it('returns 401 when userId is missing', async () => {
-      mockAuthUser = {};
+      mockAuthUser = null;
       const res = await request(app).get('/medbeds/bookings');
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
@@ -146,7 +169,7 @@ describe('MedBed Routes & Controller', () => {
     });
 
     it('returns 401 when userId is missing', async () => {
-      mockAuthUser = {};
+      mockAuthUser = null;
       const res = await request(app).post(`/medbeds/bookings/${validId}/cancel`);
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);

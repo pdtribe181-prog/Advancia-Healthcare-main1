@@ -10,6 +10,7 @@ import {
 } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
 import { ERRORS } from '../constants/errors.js';
+import { USER_STATUS, APPOINTMENT_STATUS, PAYMENT_STATUS } from '../constants/statuses.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { cacheResponse, invalidateResource } from '../middleware/cache.middleware.js';
 import { z } from 'zod';
@@ -113,7 +114,7 @@ router.get(
 
     // Non-admins only see active/verified providers
     if (!isAdmin) {
-      query = query.eq('status', 'active');
+      query = query.eq('status', USER_STATUS.ACTIVE);
     }
 
     if (specialty) {
@@ -417,7 +418,7 @@ router.post(
     const { data: appointment, error } = await supabase
       .from('appointments')
       .update({
-        status: 'completed',
+        status: APPOINTMENT_STATUS.COMPLETED,
         notes,
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -477,7 +478,10 @@ router.post(
     }
 
     // Process refund if payment was made
-    if (appointment.payment_status === 'paid' && appointment.stripe_payment_intent_id) {
+    if (
+      appointment.payment_status === PAYMENT_STATUS.PAID &&
+      appointment.stripe_payment_intent_id
+    ) {
       try {
         await stripeServices.refunds.createFull(
           appointment.stripe_payment_intent_id,
@@ -495,7 +499,7 @@ router.post(
     const { data: updatedAppointment, error: updateError } = await supabase
       .from('appointments')
       .update({
-        status: 'cancelled',
+        status: APPOINTMENT_STATUS.CANCELLED,
         cancellation_reason: reason,
         cancelled_by: 'provider',
         cancelled_at: new Date().toISOString(),
@@ -545,8 +549,8 @@ router.get(
       .from('appointments')
       .select('id, appointment_date, payment_status')
       .eq('provider_id', provider.id)
-      .eq('status', 'completed')
-      .eq('payment_status', 'paid')
+      .eq('status', APPOINTMENT_STATUS.COMPLETED)
+      .eq('payment_status', PAYMENT_STATUS.PAID)
       .gte('appointment_date', startDate.toISOString().split('T')[0])
       .lte('appointment_date', endDate.toISOString().split('T')[0]);
 

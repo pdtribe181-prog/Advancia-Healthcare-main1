@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase.js';
 import { apiLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
 import { ERRORS } from '../constants/errors.js';
+import { PAYMENT_STATUS } from '../constants/statuses.js';
 import { validateBody, validateParams } from '../middleware/validation.middleware.js';
 import { z } from 'zod';
 
@@ -575,7 +576,7 @@ router.post(
         amount: fromAmount,
         currency: fromToken,
         fiat_equivalent: toAmount,
-        status: 'completed',
+        status: PAYMENT_STATUS.COMPLETED,
         metadata: { fromToken, toToken, fromAmount, toAmount, exchangeRate },
       })
       .select()
@@ -603,7 +604,7 @@ router.post(
         fromAmount,
         toAmount,
         exchangeRate,
-        status: 'completed',
+        status: PAYMENT_STATUS.COMPLETED,
       },
     });
   })

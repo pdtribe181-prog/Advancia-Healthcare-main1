@@ -14,6 +14,7 @@ import {
   validateBody,
 } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
+import { USER_STATUS, APPOINTMENT_STATUS, PAYMENT_STATUS } from '../constants/statuses.js';
 import { logger } from '../middleware/logging.middleware.js';
 import { z } from 'zod';
 
@@ -102,7 +103,10 @@ router.get(
       supabase.from('transactions').select('*', { count: 'exact', head: true }),
       supabase.from('patients').select('*', { count: 'exact', head: true }),
       supabase.from('providers').select('*', { count: 'exact', head: true }),
-      supabase.from('disputes').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase
+        .from('disputes')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', USER_STATUS.PENDING),
       supabase
         .from('transactions')
         .select('id, amount, status, created_at')
@@ -286,7 +290,7 @@ router.put(
 
     res.json({
       success: true,
-      message: `User ${status === 'active' ? 'approved' : status}`,
+      message: `User ${status === USER_STATUS.ACTIVE ? 'approved' : status}`,
       data: user,
     });
   })
@@ -489,9 +493,9 @@ router.get(
       { count: 'exact' }
     );
 
-    if (status === 'pending') {
+    if (status === USER_STATUS.PENDING) {
       query = query.eq('stripe_onboarding_complete', false);
-    } else if (status === 'active') {
+    } else if (status === USER_STATUS.ACTIVE) {
       query = query.eq('stripe_onboarding_complete', true);
     }
 
@@ -657,7 +661,7 @@ router.get(
       .from('transactions')
       .select('amount, status, created_at')
       .gte('created_at', startDate.toISOString())
-      .eq('status', 'completed');
+      .eq('status', PAYMENT_STATUS.COMPLETED);
 
     if (error) throw AppError.internal();
 

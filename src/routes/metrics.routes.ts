@@ -45,15 +45,24 @@ const metricsAuth = (req: Request, res: Response, next: NextFunction): void => {
 };
 
 // Prometheus-style text output — IP-allowlisted or authenticated
-router.get('/', metricsAuth, (_req, res) => {
-  res.set('Content-Type', 'text/plain; charset=utf-8');
-  res.send(getPrometheusMetrics());
-});
+router.get(
+  '/',
+  metricsAuth,
+  asyncHandler(async (_req, res) => {
+    res.set('Content-Type', 'text/plain; charset=utf-8');
+    res.send(getPrometheusMetrics());
+  })
+);
 
 // JSON snapshot — admin only
-router.get('/json', authenticate, requireRole('admin'), (_req, res) => {
-  res.json(getMetricsSnapshot());
-});
+router.get(
+  '/json',
+  authenticate,
+  requireRole('admin'),
+  asyncHandler(async (_req, res) => {
+    res.json(getMetricsSnapshot());
+  })
+);
 
 // Manual persist — admin only
 router.post(

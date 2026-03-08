@@ -9,6 +9,7 @@ import { authLimiter, sensitiveLimiter } from '../middleware/rateLimit.middlewar
 import { validateBody, signinSchema, signupSchema } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError, getErrorMessage, requireUser } from '../utils/errors.js';
 import { getEnv } from '../config/env.js';
+import { USER_STATUS, PAYMENT_STATUS } from '../constants/statuses.js';
 import { logSecurityEvent, logAndNotify, extractIPAddress } from '../services/security.service.js';
 import { generateCsrfToken } from '../middleware/csrf.middleware.js';
 import { z } from 'zod';
@@ -178,7 +179,7 @@ router.post(
         .eq('id', data.user.id)
         .single();
 
-      if (profile?.status === 'pending') {
+      if (profile?.status === USER_STATUS.PENDING) {
         // Sign out the user since they're not approved yet
         await supabase.auth.signOut();
         throw AppError.forbidden(
@@ -186,7 +187,7 @@ router.post(
         );
       }
 
-      if (profile?.status === 'suspended') {
+      if (profile?.status === USER_STATUS.SUSPENDED) {
         await supabase.auth.signOut();
         throw AppError.forbidden('Your account has been suspended. Please contact support.');
       }
@@ -257,7 +258,7 @@ router.post(
           email: data.user.email,
           full_name: fullName,
           role: 'patient',
-          status: 'pending', // New users need admin approval
+          status: USER_STATUS.PENDING, // New users need admin approval
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -327,7 +328,7 @@ router.get(
   '/session',
   authenticate,
   sensitiveLimiter,
-  (req: AuthenticatedRequest, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     res.json({
       success: true,
       data: {
@@ -335,7 +336,7 @@ router.get(
         authenticated: true,
       },
     });
-  }
+  })
 );
 
 // ============================================================
@@ -443,14 +444,14 @@ router.post(
         .eq('id', data.user.id)
         .single();
 
-      if (profile?.status === 'pending') {
+      if (profile?.status === USER_STATUS.PENDING) {
         await supabase.auth.signOut();
         throw AppError.forbidden(
           'Your account is pending approval. Please wait for admin confirmation.'
         );
       }
 
-      if (profile?.status === 'suspended') {
+      if (profile?.status === USER_STATUS.SUSPENDED) {
         await supabase.auth.signOut();
         throw AppError.forbidden('Your account has been suspended. Please contact support.');
       }
@@ -462,7 +463,7 @@ router.post(
           phone: data.user.phone,
           full_name: data.user.user_metadata?.full_name || 'User',
           role: data.user.user_metadata?.role || 'patient',
-          status: 'pending',
+          status: USER_STATUS.PENDING,
         });
 
         // New phone users also start as pending
