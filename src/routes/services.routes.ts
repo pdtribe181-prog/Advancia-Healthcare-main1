@@ -143,6 +143,7 @@ router.get(
  */
 router.get(
   '/:id',
+  validateParams(serviceIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
 

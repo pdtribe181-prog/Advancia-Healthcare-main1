@@ -650,8 +650,8 @@ router.post(
       customerId,
       amount: Math.round(amount),
       productName: productName || 'Healthcare Service',
-      successUrl: successUrl || `${process.env.FRONTEND_URL}/payment/success`,
-      cancelUrl: cancelUrl || `${process.env.FRONTEND_URL}/payment/cancelled`,
+      successUrl: successUrl || `${getEnv().FRONTEND_URL}/payment/success`,
+      cancelUrl: cancelUrl || `${getEnv().FRONTEND_URL}/payment/cancelled`,
       metadata,
     });
     res.json({ success: true, data: { id: session.id, url: session.url } });

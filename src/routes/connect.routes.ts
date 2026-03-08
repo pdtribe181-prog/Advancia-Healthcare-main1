@@ -10,6 +10,7 @@ import {
 import { supabase } from '../lib/supabase.js';
 import { onboardingLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { asyncHandler, AppError } from '../utils/errors.js';
+import { getEnv } from '../config/env.js';
 
 const router = Router();
 
@@ -120,10 +121,11 @@ router.post(
       );
     }
 
+    const env = getEnv();
     const accountLink = await stripeServices.connect.createAccountLink(
       provider.stripe_account_id,
-      `${process.env.FRONTEND_URL}/provider/onboarding/refresh`,
-      `${process.env.FRONTEND_URL}/provider/onboarding/complete`
+      `${env.FRONTEND_URL}/provider/onboarding/refresh`,
+      `${env.FRONTEND_URL}/provider/onboarding/complete`
     );
 
     res.json({
@@ -183,10 +185,11 @@ router.post(
     }
 
     // Create onboarding link
+    const env = getEnv();
     const accountLink = await stripeServices.connect.createAccountLink(
       stripeAccountId,
-      `${process.env.FRONTEND_URL}/provider/onboarding/refresh`,
-      `${process.env.FRONTEND_URL}/provider/onboarding/complete`
+      `${env.FRONTEND_URL}/provider/onboarding/refresh`,
+      `${env.FRONTEND_URL}/provider/onboarding/complete`
     );
 
     res.json({
@@ -284,10 +287,11 @@ router.post(
       throw AppError.badRequest('No Stripe account found. Start onboarding first.');
     }
 
+    const env = getEnv();
     const accountLink = await stripeServices.connect.createAccountLink(
       provider.stripe_account_id,
-      `${process.env.FRONTEND_URL}/provider/onboarding/refresh`,
-      `${process.env.FRONTEND_URL}/provider/onboarding/complete`
+      `${env.FRONTEND_URL}/provider/onboarding/refresh`,
+      `${env.FRONTEND_URL}/provider/onboarding/complete`
     );
 
     res.json({

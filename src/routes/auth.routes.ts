@@ -8,6 +8,7 @@ import { createServiceClient } from '../lib/supabase.js';
 import { authLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { validateBody, signinSchema, signupSchema } from '../middleware/validation.middleware.js';
 import { asyncHandler, AppError, getErrorMessage } from '../utils/errors.js';
+import { getEnv } from '../config/env.js';
 import { logSecurityEvent, logAndNotify, extractIPAddress } from '../services/security.service.js';
 import { generateCsrfToken } from '../middleware/csrf.middleware.js';
 import { z } from 'zod';
@@ -883,7 +884,7 @@ const handleForgotPassword = asyncHandler(async (req: Request, res: Response) =>
   const { email } = req.body;
 
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password`,
+    redirectTo: `${getEnv().FRONTEND_URL}/reset-password`,
   });
 
   if (error) {
@@ -1011,7 +1012,7 @@ router.post(
   validateBody(linkIdentitySchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { provider } = req.body;
-    const redirectTo = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`;
+    const redirectTo = `${getEnv().FRONTEND_URL}/auth/callback`;
 
     const { data, error } = await supabase.auth.linkIdentity({
       provider,
