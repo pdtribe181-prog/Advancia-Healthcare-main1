@@ -147,7 +147,7 @@ export const CryptoWallet: React.FC = () => {
       toast(`✅ ${amount} ${selectedToken} sent to ${recipient.slice(0, 10)}…`, 'success');
       setRecipient('');
       setAmount('');
-    } catch (e) {
+    } catch (e: unknown) {
       toast('Transaction failed: ' + (e instanceof Error ? e.message : 'Unknown error'), 'error');
     } finally {
       setSending(false);

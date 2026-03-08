@@ -559,7 +559,7 @@ router.get(
     if (provider.stripe_account_id) {
       try {
         stripeBalance = await stripeServices.connect.getBalance(provider.stripe_account_id);
-      } catch (e) {
+      } catch (_e: unknown) {
         logger.warn('Could not fetch Stripe balance', { accountId: provider.stripe_account_id });
       }
     }

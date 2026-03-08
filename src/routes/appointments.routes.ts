@@ -300,7 +300,7 @@ router.post(
       await sendAppointmentConfirmedEmail(userProfile.email, {
         patientName: userProfile.full_name,
         providerName: provider.business_name,
-        specialty: (provider as any).specialty,
+        specialty: provider.specialty,
         date: new Date(appointment.appointment_date).toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',

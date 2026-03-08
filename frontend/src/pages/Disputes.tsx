@@ -339,8 +339,7 @@ export const Disputes: React.FC = () => {
     setFetchError(null);
     try {
       const res = await api.get<{ success: boolean; data: Record<string, unknown>[] }>('/disputes');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: Dispute[] = (res.data || []).map((d: any) => ({
+      const mapped: Dispute[] = (res.data || []).map((d: Record<string, unknown>) => ({
         id: d.id,
         transactionId: d.transaction_id || d.transactionId || '',
         amount: d.amount || 0,
@@ -391,7 +390,7 @@ export const Disputes: React.FC = () => {
     setLoading(true);
 
     try {
-      const res = await api.post<{ success: boolean; data: any }>('/disputes', {
+      const res = await api.post<{ success: boolean; data: Record<string, unknown> }>('/disputes', {
         transaction_id: newDispute.transactionId,
         type: newDispute.type,
         reason: newDispute.reason,

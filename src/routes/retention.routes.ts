@@ -50,8 +50,7 @@ router.post(
   sensitiveLimiter,
   auditAdmin('retention_enforce'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const profile = req.userProfile as any;
-    if (profile?.role !== 'admin') {
+    if (req.userProfile?.role !== 'admin') {
       throw new AppError('Admin access required', 403);
     }
 
@@ -80,8 +79,7 @@ router.get(
   '/history',
   authenticate,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const profile = req.userProfile as any;
-    if (profile?.role !== 'admin') {
+    if (req.userProfile?.role !== 'admin') {
       throw new AppError('Admin access required', 403);
     }
 

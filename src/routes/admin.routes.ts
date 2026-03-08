@@ -377,7 +377,7 @@ router.get(
     if (transaction.stripe_payment_intent_id) {
       try {
         stripePayment = await stripe.paymentIntents.retrieve(transaction.stripe_payment_intent_id);
-      } catch (e) {
+      } catch (_e: unknown) {
         logger.warn('Failed to fetch Stripe payment', {
           paymentIntentId: transaction.stripe_payment_intent_id,
         });

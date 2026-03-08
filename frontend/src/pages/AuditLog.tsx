@@ -324,8 +324,7 @@ export const AuditLog: React.FC = () => {
         `/admin/audit-log?${params.toString()}`
       );
       // Map backend compliance_logs to AuditLogEntry shape
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: AuditLogEntry[] = (res.data || []).map((log: any) => ({
+      const mapped: AuditLogEntry[] = (res.data || []).map((log: Record<string, unknown>) => ({
         id: log.id,
         timestamp: log.created_at || log.timestamp,
         action: log.action_type || log.action || 'unknown',

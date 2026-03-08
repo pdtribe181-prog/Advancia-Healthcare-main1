@@ -7,7 +7,7 @@ import {
 import { createServiceClient } from '../lib/supabase.js';
 import { authLimiter, sensitiveLimiter } from '../middleware/rateLimit.middleware.js';
 import { validateBody, signinSchema, signupSchema } from '../middleware/validation.middleware.js';
-import { asyncHandler, AppError, getErrorMessage, requireUser } from '../utils/errors.js';
+import { asyncHandler, AppError, requireUser } from '../utils/errors.js';
 import { getEnv } from '../config/env.js';
 import { USER_STATUS, PAYMENT_STATUS } from '../constants/statuses.js';
 import { logSecurityEvent, logAndNotify, extractIPAddress } from '../services/security.service.js';
