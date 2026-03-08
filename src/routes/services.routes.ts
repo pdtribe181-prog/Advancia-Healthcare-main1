@@ -52,7 +52,9 @@ const createServiceSchema = z.object({
   currency: z.string().default('USD'),
   duration_minutes: z.number().int().positive().optional(),
   requires_authorization: z.boolean().default(false),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
 });
 
 const updateServiceSchema = createServiceSchema.partial().extend({

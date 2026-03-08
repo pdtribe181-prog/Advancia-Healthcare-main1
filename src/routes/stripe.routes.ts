@@ -99,7 +99,7 @@ const confirmPaymentIntentSchema = z.object({
 
 const connectAccountSchema = z.object({
   email: z.string().email(),
-  providerId: z.string().min(1).optional(),
+  providerId: z.string().uuid('Invalid provider ID').optional(),
   businessName: z.string().max(200).optional(),
   country: z.string().length(2).optional(),
 });
@@ -114,8 +114,8 @@ const createTransferSchema = z.object({
 const createSubscriptionSchema = z.object({
   customerId: z.string().startsWith('cus_'),
   priceId: z.string().startsWith('price_'),
-  patientId: z.string().min(1).optional(),
-  providerId: z.string().min(1).optional(),
+  patientId: z.string().uuid('Invalid patient ID').optional(),
+  providerId: z.string().uuid('Invalid provider ID').optional(),
 });
 
 const attachPaymentMethodSchema = z.object({

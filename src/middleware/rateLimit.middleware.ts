@@ -66,7 +66,11 @@ async function resolveRedisStore(): Promise<Store | undefined> {
 }
 
 // Pre-resolve the store eagerly (non-blocking) so it's ready when first limiter fires
-resolveRedisStore().catch(() => {});
+resolveRedisStore().catch((err) => {
+  logger.warn('Redis store pre-resolve failed, falling back to in-memory rate limiting', {
+    error: err instanceof Error ? err.message : 'Unknown error',
+  });
+});
 
 // Factory functions that create limiters with config
 function createApiLimiter(store?: Store) {
