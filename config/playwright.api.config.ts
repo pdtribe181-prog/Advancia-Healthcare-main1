@@ -43,10 +43,10 @@ export default defineConfig({
   ...(process.env.CI
     ? {
         webServer: {
-          command: 'npm run dev',
+          command: 'npm run build && npm start',
           url: 'http://127.0.0.1:3000/health',
           reuseExistingServer: false,
-          timeout: 180000,
+          timeout: 300000,
           cwd: '..',
         },
       }

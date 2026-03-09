@@ -185,7 +185,7 @@ npm run test:coverage
       - run: npm outdated
       # Create issue if vulnerabilities found
 
-```
+```yaml
 
 ---
 

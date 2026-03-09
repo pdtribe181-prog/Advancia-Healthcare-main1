@@ -6,8 +6,10 @@ import { PaymentForm } from './PaymentForm';
 
 // Mock Stripe hooks
 const mockConfirmPayment = vi.fn();
-let mockStripe: ReturnType<typeof vi.fn> | null = {};
-let mockElements: ReturnType<typeof vi.fn> | null = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockStripe: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockElements: any = {};
 
 vi.mock('@stripe/react-stripe-js', () => ({
   PaymentElement: ({ onReady }: { onReady?: () => void }) => {

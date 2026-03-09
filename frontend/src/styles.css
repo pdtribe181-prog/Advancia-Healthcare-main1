@@ -2960,6 +2960,31 @@ input[data-numeric] {
   display: block;
   filter: drop-shadow(0 0 8px var(--feat-glow));
 }
+.feat-card__cat {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--feat-primary);
+  background: rgba(129,140,248,0.12);
+  border: 1px solid rgba(129,140,248,0.2);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
+}
+.feat-card h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--feat-text);
+}
+.feat-card p {
+  font-size: 0.875rem;
+  color: var(--feat-muted);
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
 .feat-card__title {
   font-size: 1.05rem;
   font-weight: 700;

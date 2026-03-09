@@ -51,6 +51,7 @@ test-results/
 temp_email_previews/
 test-output.txt
 temp_supabase/
+temp-ci-runs.json
 
 # One-time migration guide (already applied)
 COPY_PASTE_INSTRUCTIONS.txt
