@@ -166,7 +166,7 @@ export const stripeBreaker = new CircuitBreaker('stripe', {
     // Stripe rate-limit (429) or server errors (5xx) trip the breaker
     // Client errors (400, 402, 404) do NOT trip the breaker
     if (err && typeof err === 'object' && 'statusCode' in err) {
-      const code = (err as any).statusCode;
+      const code = (err as { statusCode: number }).statusCode;
       return code === 429 || code >= 500;
     }
     return true; // network/timeout errors always trip

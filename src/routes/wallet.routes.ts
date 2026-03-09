@@ -225,14 +225,15 @@ router.post(
           verifiedAt: wallet.verified_at,
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       // Log failure
+      const errMsg = error instanceof Error ? error.message : String(error);
       await walletAuditService.log({
         userId: requireUser(req).id,
         action: 'wallet_link_failed',
-        details: { wallet_address: walletAddress, network, error: (error as Error).message },
+        details: { wallet_address: walletAddress, network, error: errMsg },
         success: false,
-        errorMessage: (error as Error).message,
+        errorMessage: errMsg,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       });

@@ -192,7 +192,7 @@ async function writeAuditRecord(
           request_method: req.method,
           request_path: req.originalUrl,
           response_status: res.statusCode,
-        }) as any
+        })
       );
     }
 
@@ -212,12 +212,12 @@ async function writeAuditRecord(
             response_status: res.statusCode,
             ...extraMeta,
           },
-        }) as any
+        })
       );
     }
 
     await Promise.allSettled(promises);
-  } catch (err) {
+  } catch (err: unknown) {
     // Never let audit failures affect the request
     logger.error('Audit log write failed', undefined, { error: String(err), action: opts.action });
   }

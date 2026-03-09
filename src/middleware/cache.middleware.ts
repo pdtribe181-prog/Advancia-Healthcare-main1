@@ -126,11 +126,20 @@ export async function invalidateCache(prefix: string): Promise<number> {
       await redis.del(prefix);
       deleted = 1;
     } else if (kind === 'ioredis') {
-      const redis = getRedis() as any;
+      const redis = getRedis() as unknown as {
+        scan: (cursor: string, ...args: string[]) => Promise<[string, string[]]>;
+        del: (...keys: string[]) => Promise<number>;
+      };
       // Use SCAN to find matching keys
       let cursor = '0';
       do {
-        const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 100);
+        const [nextCursor, keys] = await redis.scan(
+          cursor,
+          'MATCH',
+          `${prefix}*`,
+          'COUNT',
+          String(100)
+        );
         cursor = nextCursor;
         if (keys.length > 0) {
           await redis.del(...keys);

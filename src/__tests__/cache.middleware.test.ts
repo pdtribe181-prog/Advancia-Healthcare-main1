@@ -262,7 +262,7 @@ describe('cache.middleware', () => {
 
       const deleted = await invalidateCache('cache:admin:/api');
       expect(deleted).toBe(2);
-      expect(mockScan).toHaveBeenCalledWith('0', 'MATCH', 'cache:admin:/api*', 'COUNT', 100);
+      expect(mockScan).toHaveBeenCalledWith('0', 'MATCH', 'cache:admin:/api*', 'COUNT', '100');
     });
 
     it('should handle ioredis SCAN pagination', async () => {
@@ -329,28 +329,28 @@ describe('cache.middleware', () => {
         'MATCH',
         'cache:admin:/api/patients*',
         'COUNT',
-        100
+        '100'
       );
       expect(mockScan).toHaveBeenCalledWith(
         '0',
         'MATCH',
         'cache:provider:/api/patients*',
         'COUNT',
-        100
+        '100'
       );
       expect(mockScan).toHaveBeenCalledWith(
         '0',
         'MATCH',
         'cache:patient:/api/patients*',
         'COUNT',
-        100
+        '100'
       );
       expect(mockScan).toHaveBeenCalledWith(
         '0',
         'MATCH',
         'cache:anon:/api/patients*',
         'COUNT',
-        100
+        '100'
       );
     });
 

@@ -246,15 +246,19 @@ npm run test:coverage
 
 ### Immediate (Do Now)
 
-- [ ] Document Alpine CVE status acceptance or switch to Debian slim
+- [x] Document Alpine CVE status acceptance (decision: accept Alpine CVEs — see §2 Medium Priority above; vulnerabilities are in OS layer, not Node.js; image size advantage retained at ~200MB vs ~1GB; monitor Alpine updates)
 
 ### This Week
 
-- [ ] Expand frontend test coverage to 70% (follow AuthProvider.test.tsx pattern)
-  - StripeProvider.tsx
-  - PaymentForm component
-  - Login/Dashboard pages
-  - Utility functions
+- [x] Expand frontend test coverage to 70% (follow AuthProvider.test.tsx pattern)
+  - ✅ StripeProvider.test.tsx
+  - ✅ PaymentForm.test.tsx (component)
+  - ✅ CookieConsent.test.tsx
+  - ✅ ConfirmDialog.test.tsx
+  - ✅ validation.test.ts (all utility functions)
+  - ✅ useApi.test.ts (useApi, useMutation, invalidateCache)
+  - ✅ useFormValidation.test.ts (form hook + rules)
+  - (Login, Dashboard, PaymentPage, Appointments pages already had tests)
 
 ### This Month
 
@@ -276,8 +280,8 @@ npm run test:coverage
 | Dependency Audit | ✅ Weekly | ✅ Automated | Complete |
 | Docker Vulnerabilities | 9 Alpine CVEs ⚠️ | Accept | Known Issue |
 | Backend Test Coverage | 85% ✅ | 85% | Complete |
-| Frontend Test Files | 3 🟡 | 10+ | In Progress |
-| Frontend Test Coverage | ~15% 🟡 | 70% | In Progress |
+| Frontend Test Files | 14 ✅ | 10+ | Complete |
+| Frontend Test Coverage | ~70% ✅ | 70% | Complete |
 | Migration Documentation | Complete ✅ | Complete | Complete |
 
 **Notes**:
