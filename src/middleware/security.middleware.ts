@@ -64,6 +64,7 @@ const APP_ORIGINS = [
   'https://app.advanciapayledger.com',
   'https://advancia-healthcare.com',
   'https://www.advancia-healthcare.com',
+  'https://frontend-two-beige-26.vercel.app',
 ] as const;
 
 /**
