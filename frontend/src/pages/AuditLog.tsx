@@ -22,6 +22,23 @@ interface AuditLogEntry {
   status: 'success' | 'failure' | 'warning';
 }
 
+/** Shape of a raw audit-log row returned by the backend */
+interface RawAuditLog {
+  id?: string;
+  created_at?: string;
+  timestamp?: string;
+  action_type?: string;
+  action?: string;
+  user_id?: string;
+  user?: { id?: string; email?: string; full_name?: string; role?: string };
+  resource_type?: string;
+  resource_id?: string;
+  details?: Record<string, string | number | boolean>;
+  ip_address?: string;
+  user_agent?: string;
+  status?: string;
+}
+
 function inferCategory(action: string): AuditLogEntry['category'] {
   if (action.startsWith('auth') || action.includes('login') || action.includes('signup')) return 'auth';
   if (action.includes('payment') || action.includes('transaction') || action.includes('refund')) return 'payment';
@@ -320,13 +337,13 @@ export const AuditLog: React.FC = () => {
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (filters.category) params.set('action', filters.category);
-      const res = await api.get<{ data: Record<string, unknown>[]; pagination: { total: number; totalPages: number } }>(
+      const res = await api.get<{ data: RawAuditLog[]; pagination: { total: number; totalPages: number } }>(
         `/admin/audit-log?${params.toString()}`
       );
       // Map backend compliance_logs to AuditLogEntry shape
-      const mapped: AuditLogEntry[] = (res.data || []).map((log: Record<string, unknown>) => ({
-        id: log.id,
-        timestamp: log.created_at || log.timestamp,
+      const mapped: AuditLogEntry[] = (res.data || []).map((log: RawAuditLog) => ({
+        id: log.id || '',
+        timestamp: log.created_at || log.timestamp || '',
         action: log.action_type || log.action || 'unknown',
         category: inferCategory(log.action_type || log.action || ''),
         actor: {
@@ -341,7 +358,7 @@ export const AuditLog: React.FC = () => {
         details: log.details || {},
         ip_address: log.ip_address || '',
         user_agent: log.user_agent || '',
-        status: log.status || 'success',
+        status: (log.status || 'success') as AuditLogEntry['status'],
       }));
       setLogs(mapped);
       setTotal(res.pagination?.total ?? mapped.length);

@@ -9,6 +9,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
+import type { AuthenticatedRequest } from './auth.middleware.js';
 import { recordRequest } from '../services/metrics.service.js';
 
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
@@ -16,7 +17,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
 
   res.on('finish', () => {
     const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
-    const userId = (req as any).user?.id as string | undefined;
+    const userId = (req as AuthenticatedRequest).user?.id as string | undefined;
     recordRequest(req.method, req.originalUrl || req.url, res.statusCode, durationMs, userId);
   });
 

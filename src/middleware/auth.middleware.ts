@@ -1,21 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase.js';
 
 // Extend Express Request type
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email?: string;
-    role?: string;
-    aud?: string;
-    [key: string]: any;
-  };
+  user?: User;
   userProfile?: {
     id: string;
     role: string;
     full_name?: string;
     stripe_customer_id?: string;
-    [key: string]: any;
+    status?: string;
   };
 }
 

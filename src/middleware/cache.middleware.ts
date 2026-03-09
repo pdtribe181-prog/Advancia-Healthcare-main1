@@ -16,6 +16,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import type { AuthenticatedRequest } from './auth.middleware.js';
 import { redisHelpers, getRedis, getRedisKind } from '../lib/redis.js';
 import { logger } from './logging.middleware.js';
 
@@ -37,7 +38,7 @@ interface CacheOptions {
 // ---------------------------------------------------------------------------
 
 function defaultKey(req: Request): string {
-  const role = (req as any).userProfile?.role ?? 'anon';
+  const role = (req as AuthenticatedRequest).userProfile?.role ?? 'anon';
   // Include URL path + sorted query string + role to avoid cross-role leaks
   const qs = new URLSearchParams(req.query as Record<string, string>);
   qs.sort();

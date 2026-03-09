@@ -831,9 +831,9 @@ router.get(
   validateParams(paymentIntentIdParamsSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const paymentIntentId = req.params.id as string;
-    const paymentIntent = (await stripe.paymentIntents.retrieve(paymentIntentId, {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
       expand: ['latest_charge', 'invoice'],
-    })) as any;
+    });
 
     // Verify ownership
     const customerId = req.userProfile?.stripe_customer_id;
@@ -841,7 +841,7 @@ router.get(
       throw AppError.forbidden('Access denied');
     }
 
-    const charge = paymentIntent.latest_charge;
+    const charge = paymentIntent.latest_charge as Stripe.Charge | null;
 
     res.json({
       success: true,
@@ -856,7 +856,7 @@ router.get(
         receipt_email: charge?.receipt_email || null,
         payment_method: paymentIntent.payment_method,
         metadata: paymentIntent.metadata,
-        invoice: paymentIntent.invoice,
+        invoice: (paymentIntent as unknown as { invoice?: string | object | null }).invoice ?? null,
       },
     });
   })

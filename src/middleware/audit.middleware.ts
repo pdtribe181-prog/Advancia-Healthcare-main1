@@ -18,6 +18,7 @@
  */
 
 import { Response, NextFunction, Request } from 'express';
+import type { AuthenticatedRequest } from './auth.middleware.js';
 import { createServiceClient } from '../lib/supabase.js';
 import { logger } from './logging.middleware.js';
 
@@ -129,7 +130,7 @@ async function writeAuditRecord(
   durationMs: number
 ) {
   try {
-    const user = (req as any).user;
+    const user = (req as AuthenticatedRequest).user;
     const userId: string | null = user?.id ?? null;
     const resourceType = opts.resourceType ?? inferResourceType(req.path);
     const resourceId = extractResourceId(req);
@@ -138,7 +139,8 @@ async function writeAuditRecord(
       req.socket.remoteAddress ??
       null;
     const userAgent = req.headers['user-agent'] ?? null;
-    const sessionId = (req as any).sessionId ?? req.headers['x-session-id'] ?? null;
+    const sessionId =
+      (req as Request & { sessionId?: string }).sessionId ?? req.headers['x-session-id'] ?? null;
     const accessGranted = res.statusCode < 400;
     const denialReason = !accessGranted ? `HTTP ${res.statusCode}` : null;
     const extraMeta = opts.extractMeta ? opts.extractMeta(req, res) : {};
@@ -162,11 +164,11 @@ async function writeAuditRecord(
       duration_ms: durationMs,
       metadata: {
         ...extraMeta,
-        requestId: (req as any).id,
+        requestId: req.requestId,
       },
     };
 
-    const promises: Promise<any>[] = [sb.from('access_audit_logs').insert(auditPayload) as any];
+    const promises: PromiseLike<unknown>[] = [sb.from('access_audit_logs').insert(auditPayload)];
 
     // 2. Compliance log for sensitive operations
     const isComplianceAction = opts.compliance === true || COMPLIANCE_ACTIONS.has(opts.action);

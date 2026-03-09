@@ -1,5 +1,6 @@
 import rateLimit, { type Store } from 'express-rate-limit';
 import { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { AuthenticatedRequest } from './auth.middleware.js';
 import { createRequire } from 'module';
 import { getEnv, Env } from '../config/env.js';
 import { getRedisKind, getRedisClient } from '../lib/redis.js';
@@ -83,7 +84,7 @@ function createApiLimiter(store?: Store) {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => {
-      const userId = (req as any).user?.id as string | undefined;
+      const userId = (req as AuthenticatedRequest).user?.id as string | undefined;
       return userId || ipKeyGenerator(req.ip || 'unknown');
     },
     validate: { creationStack: false },
@@ -114,7 +115,7 @@ function createPaymentLimiter(store?: Store) {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => {
-      const userId = (req as any).user?.id as string | undefined;
+      const userId = (req as AuthenticatedRequest).user?.id as string | undefined;
       return userId || ipKeyGenerator(req.ip || 'unknown');
     },
     validate: { creationStack: false },
@@ -131,7 +132,7 @@ function createSensitiveLimiter(store?: Store) {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req: Request) => {
-      const userId = (req as any).user?.id as string | undefined;
+      const userId = (req as AuthenticatedRequest).user?.id as string | undefined;
       return userId || ipKeyGenerator(req.ip || 'unknown');
     },
     validate: { creationStack: false },

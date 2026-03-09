@@ -17,6 +17,27 @@ interface Dispute {
   resolution?: string;
 }
 
+/** Shape of a raw dispute row returned by the backend */
+interface RawDispute {
+  id?: string;
+  transaction_id?: string;
+  transactionId?: string;
+  amount?: number;
+  type?: string;
+  dispute_type?: string;
+  status?: string;
+  reason?: string;
+  description?: string;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+  merchant?: string;
+  provider?: { business_name?: string };
+  resolution_notes?: string;
+  resolution?: string;
+}
+
 const pageStyle: CSSProperties = {
   minHeight: '100vh',
   background: 'var(--bg)',
@@ -338,13 +359,13 @@ export const Disputes: React.FC = () => {
     setFetchLoading(true);
     setFetchError(null);
     try {
-      const res = await api.get<{ success: boolean; data: Record<string, unknown>[] }>('/disputes');
-      const mapped: Dispute[] = (res.data || []).map((d: Record<string, unknown>) => ({
-        id: d.id,
+      const res = await api.get<{ success: boolean; data: RawDispute[] }>('/disputes');
+      const mapped: Dispute[] = (res.data || []).map((d: RawDispute) => ({
+        id: d.id || '',
         transactionId: d.transaction_id || d.transactionId || '',
         amount: d.amount || 0,
-        type: d.type || d.dispute_type || 'refund',
-        status: d.status || 'open',
+        type: (d.type || d.dispute_type || 'refund') as Dispute['type'],
+        status: (d.status || 'open') as Dispute['status'],
         reason: d.reason || '',
         description: d.description || '',
         createdAt: d.created_at || d.createdAt || new Date().toISOString(),
@@ -390,7 +411,7 @@ export const Disputes: React.FC = () => {
     setLoading(true);
 
     try {
-      const res = await api.post<{ success: boolean; data: Record<string, unknown> }>('/disputes', {
+      const res = await api.post<{ success: boolean; data: RawDispute }>('/disputes', {
         transaction_id: newDispute.transactionId,
         type: newDispute.type,
         reason: newDispute.reason,
@@ -403,7 +424,7 @@ export const Disputes: React.FC = () => {
         transactionId: created.transaction_id || newDispute.transactionId,
         amount: created.amount || 0,
         type: (created.type || newDispute.type) as Dispute['type'],
-        status: created.status || 'open',
+        status: (created.status || 'open') as Dispute['status'],
         reason: created.reason || newDispute.reason,
         description: created.description || newDispute.description,
         createdAt: created.created_at || new Date().toISOString(),

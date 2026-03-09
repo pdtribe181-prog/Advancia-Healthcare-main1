@@ -11,7 +11,7 @@ export interface AuthenticatedRequest extends Request {
     role: string;
     full_name?: string;
     stripe_customer_id?: string;
-    [key: string]: any;
+    status?: string;
   };
   requestId?: string;
 }
