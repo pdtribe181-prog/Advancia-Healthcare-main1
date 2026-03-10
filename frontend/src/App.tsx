@@ -78,6 +78,9 @@ const Disputes = lazy(() => import('./pages/Disputes'));
 const KYCVerification = lazy(() => import('./pages/KYCVerification'));
 const AuditLog = lazy(() => import('./pages/AuditLog'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
+const SentryExamplePage = lazy(() =>
+  import('./pages/SentryExamplePage').then((m) => ({ default: m.SentryExamplePage }))
+);
 
 import { isHealthcareHost } from './config/domains';
 
@@ -118,6 +121,7 @@ export default function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="auth/callback" element={<AuthCallback />} />
+            <Route path="sentry-example-page" element={<SentryExamplePage />} />
             <Route
               path="dashboard"
               element={
