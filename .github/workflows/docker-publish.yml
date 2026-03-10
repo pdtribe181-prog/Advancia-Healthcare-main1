@@ -26,6 +26,7 @@ jobs:
       contents: read
       packages: write
       id-token: write  # for provenance attestation
+      attestations: write  # for actions/attest-build-provenance
 
     steps:
       - uses: actions/checkout@v6
