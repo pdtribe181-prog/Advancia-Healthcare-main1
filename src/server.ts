@@ -663,10 +663,9 @@ app.get('/health', async (req, res) => {
 
 // Sentry verification route — triggers a deliberate error to confirm Sentry captures it.
 // Remove this route once verified in your Sentry dashboard.
-app.get('/api/v1/debug-sentry', (_req, res) => {
+app.get('/debug-sentry', () => {
   // @ts-expect-error — deliberate call to undefined function to test Sentry error capture
   myUndefinedFunction();
-  res.status(200).json({ message: 'This should not be reached' });
 });
 
 // API Documentation
