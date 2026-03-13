@@ -13,6 +13,7 @@ import {
   persistMetrics,
 } from '../services/metrics.service.js';
 import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { apiLimiter } from '../middleware/rateLimit.middleware.js';
 import { asyncHandler } from '../utils/errors.js';
 import { getEnv } from '../config/env.js';
 
@@ -47,6 +48,7 @@ const metricsAuth = (req: Request, res: Response, next: NextFunction): void => {
 // Prometheus-style text output — IP-allowlisted or authenticated
 router.get(
   '/',
+  apiLimiter,
   metricsAuth,
   asyncHandler(async (_req, res) => {
     res.set('Content-Type', 'text/plain; charset=utf-8');
@@ -57,6 +59,7 @@ router.get(
 // JSON snapshot — admin only
 router.get(
   '/json',
+  apiLimiter,
   authenticate,
   requireRole('admin'),
   asyncHandler(async (_req, res) => {
@@ -67,6 +70,7 @@ router.get(
 // Manual persist — admin only
 router.post(
   '/persist',
+  apiLimiter,
   authenticate,
   requireRole('admin'),
   asyncHandler(async (_req, res) => {

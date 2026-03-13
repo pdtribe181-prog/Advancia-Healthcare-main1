@@ -1,5 +1,7 @@
 # Advancia Healthcare
 
+> Canonical production repo: [pdtribe181-prog/modullar-advancia](https://github.com/pdtribe181-prog/modullar-advancia). This repository is a healthcare-only bundle derived from the canonical app and should not become a separate live deploy source for the main Advancia domains without an explicit cutover plan.
+
 Single app: one landing, wallet connect, booking & sessions, features, FAQ, policies, subscriptions, admin. Login, loaders, and redirects included.
 
 **Repo:** [pdtribe181-prog/Advancia-Healthcare-main1](https://github.com/pdtribe181-prog/Advancia-Healthcare-main1)
